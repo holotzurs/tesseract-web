@@ -1,16 +1,8 @@
-# Tesseract OCR web interface
+# Entrypoint OCR Service
 
 Supports scanning images and pdfs.
 
-Use prebuilt docker image:
-```
-docker run -p 3000:80 ghcr.io/santhoshtr/tesseract-ocr-web:latest
-```
-Open http://0.0.0.0:3000/ using browser
-
-OR
-
-Checkout this repository and
+Checkout this repository:
 ```
 docker build -t tesseract-ocr .
 docker run -dp 3000:80 tesseract-ocr:latest
