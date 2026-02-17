@@ -38,6 +38,40 @@ You can send a POST request with a JSON payload containing the URL of the file t
     http://127.0.0.1:5000/api/v2/ocr
     ```
 
+### Automated Testing
+
+To run the automated tests for this project (without Docker):
+
+1.  **Set up a Virtual Environment**:
+    It's highly recommended to use a virtual environment to manage project dependencies. You can use `uv` for this:
+    ```bash
+    uv venv
+    ```
+
+2.  **Activate the Virtual Environment**:
+    *   On Unix/macOS:
+        ```bash
+        source .venv/bin/activate
+        ```
+    *   On Windows:
+        ```bash
+        .venv\\Scripts\\activate
+        ```
+
+3.  **Install All Dependencies**:
+    Once the virtual environment is active, install all project dependencies (including development and test dependencies, as your `requirements.txt` is already set up for this):
+    ```bash
+    uv pip install -r requirements.txt
+    ```
+
+4.  **Run Tests**:
+    Execute the tests using `pytest`.
+    ```bash
+    PYTHONPATH=. pytest tests/test_app.py
+    ```
+
+    You should see a report indicating that all tests have passed.
+
 ### Testing with a Local PDF File
 
 To test with a local PDF file, you can run a simple Python HTTP server.

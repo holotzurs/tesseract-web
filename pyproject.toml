@@ -15,7 +15,8 @@ dependencies = [
     "pytesseract",
     "werkzeug",
     "pdf2image",
-    "langcodes[data]",
+    "langcodes[data]==3.5.1",
+    "language-data==1.4.0",
     "requests",
 ]
 
@@ -27,6 +28,8 @@ dev = [
     "black",
     "ruff",
     "tox",
+    "pytest",
+    "pytest-cov",
 ]
 
 
