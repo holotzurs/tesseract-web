@@ -80,6 +80,16 @@ pyproject-hooks==1.0.0
     # via build
 pytesseract==0.3.10
     # via ocr-web (pyproject.toml)
+requests==2.31.0
+    # via ocr-web (pyproject.toml)
+certifi==2023.7.22
+    # via requests
+charset-normalizer==3.3.2
+    # via requests
+idna==3.4
+    # via requests
+urllib3==2.0.7
+    # via requests
 ruff==0.0.284
     # via ocr-web (pyproject.toml)
 tox==4.4.12

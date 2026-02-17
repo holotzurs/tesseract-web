@@ -84,12 +84,27 @@ function doOCR(){
     data.append('file', state.file)
     data.append('language',language)
     resultEl.value  = "Scanning..."
+
+    const startTime = new Date();
+    const timingInfoEl = document.querySelector("#timing-info");
+    const startTimeEl = document.querySelector("#start-time");
+    const endTimeEl = document.querySelector("#end-time");
+    const durationEl = document.querySelector("#duration");
+
+    timingInfoEl.classList.remove("hidden");
+    startTimeEl.textContent = startTime.toLocaleTimeString();
+    endTimeEl.textContent = "";
+    durationEl.textContent = "";
+
     fetch('/api/ocr', {
       method: 'POST',
       body: data
     })
     .then(response => response.json())
     .then(result => {
+        const endTime = new Date();
+        endTimeEl.textContent = endTime.toLocaleTimeString();
+        durationEl.textContent = endTime - startTime;
         resultEl.value=result.error || result.text
     })
     .catch(() => { /* Error. Inform the user */ })

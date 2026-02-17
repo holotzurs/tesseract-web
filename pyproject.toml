@@ -16,6 +16,7 @@ dependencies = [
     "werkzeug",
     "pdf2image",
     "langcodes[data]",
+    "requests",
 ]
 
 

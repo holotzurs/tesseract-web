@@ -65,13 +65,18 @@
     <body>
         <header>
             <div class="brand">
-                <img src="https://www.entrypoint.co.il/wp-content/uploads/2016/03/logo-entrypoint.png" alt="Entrypoint" class="logo">
+                <img src="{{ url_for('static', filename='logo.svg') }}" alt="Entrypoint" class="logo">
                 <h1 class="title">OCR Service</h1>
             </div>
             <nav>
                 <a href="https://www.entrypoint.co.il/contact-us/" style="color: var(--ep-blue); text-decoration: none; font-weight: bold;">Contact Us</a>
             </nav>
         </header>
+        <section id="timing-info" class="container hidden">
+            <p>Start time: <span id="start-time"></span></p>
+            <p>End time: <span id="end-time"></span></p>
+            <p>Duration: <span id="duration"></span> ms</p>
+        </section>
         <main>
 
             <section class="container">

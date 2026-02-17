@@ -1,5 +1,7 @@
 import os
 import pathlib
+import requests
+import datetime
 
 import pdf2image
 import pytesseract
@@ -81,6 +83,52 @@ def ocr():
     os.remove(filepath)
 
     return jsonify(text=text)
+
+
+@app.route("/api/v2/ocr", methods=["POST"])
+def ocr_v2():
+    start_time = datetime.datetime.now()
+    if not request.json or 'url' not in request.json:
+        return jsonify(error="URL is required"), 400
+    
+    url = request.json['url']
+    language = request.json.get('language', 'en')
+
+    try:
+        response = requests.get(url, stream=True)
+        response.raise_for_status()
+    except requests.exceptions.RequestException as e:
+        return jsonify(error=str(e)), 400
+
+    filename = secure_filename(url.split('/')[-1])
+    filepath = os.path.join(app.config["UPLOAD_FOLDER"], filename)
+    
+    with open(filepath, 'wb') as f:
+        for chunk in response.iter_content(chunk_size=8192):
+            f.write(chunk)
+
+    file_extension = pathlib.Path(filename).suffix.split(".")[-1].lower()
+    if file_extension not in app.config["SUPPORTED_FORMATS"]:
+        os.remove(filepath)
+        return jsonify(error="File format not supported")
+        
+    if file_extension == "pdf":
+        text = pdf_to_text(filepath, language)
+    else:
+        text = ocr_core(Image.open(filepath), language)
+    
+    os.remove(filepath)
+    
+    end_time = datetime.datetime.now()
+    duration = (end_time - start_time).total_seconds() * 1000
+
+    return jsonify(
+        url=url,
+        start_time=start_time.isoformat(),
+        end_time=end_time.isoformat(),
+        duration=f"{duration:.2f}ms",
+        text=text
+    )
 
 
 if __name__ == "__main__":
