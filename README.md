@@ -29,7 +29,12 @@ You can send a POST request with a JSON payload containing the URL of the file t
     }
     ```
 
-2.  Run the following `curl` command:
+2. Run a simple python webserver in the root folder (where sample.pdf is)
+   ```bash
+   python3 -m http.server 8000 --bind 0.0.0.0 &
+   ```
+
+3.  Run the following `curl` command:
 
     ```bash
     curl -X POST \
