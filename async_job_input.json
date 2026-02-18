@@ -1,0 +1,27 @@
+{
+  "files": [
+    {
+      "url": "http://host.docker.internal:8000/sample.pdf",
+      "language": "en"
+    },
+    {
+      "url": "https://www.mathworks.com/help/vision/ref/stop-sign-english.png",
+      "language": "en"
+    },
+    
+    {
+      "url": "http://host.docker.internal:8000/sample.pdf",
+      "language": "en"
+    },
+
+    {
+      "url": "http://host.docker.internal:8000/sample.pdf",
+      "language": "en"
+    },
+
+    {
+      "url": "http://host.docker.internal:8000/sample.pdf",
+      "language": "en"
+    }
+  ]
+}

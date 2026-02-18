@@ -14,6 +14,6 @@ WORKDIR /app
 
 RUN pip install -r requirements.txt
 
-ENTRYPOINT ["gunicorn"]
+ENTRYPOINT ["gunicorn", "--workers=1"]
 
 EXPOSE 80
