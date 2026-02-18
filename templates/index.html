@@ -40,13 +40,13 @@
                             {% if code == "en" %}
                             <option value= "{{code}}" selected>{{code}} - {{languages[code]}}</option>"
                             {% else %}
-                            <option value= "{{code}}">{{code}} - {{languages[code]}}</option>"
+                            <option value= "{{code}}">{{code}} - {{languages[id]}}</option>"
                             {% endif %}
                         {% endfor %}
                     </select>
 
                     <p>Drop, paste or upload an image or pdf here</p>
-                    <input id="uploadimage" type="file" name="file" accept="image/*, application/pdf" />
+                    <input id="uploadimage" type="file" name="file" accept="image/*, application/pdf" multiple />
                     <embed class="hidden" id="ocr-pdf"/>
                     <img class="hidden" id="ocr-img" />
                 </section>
@@ -55,9 +55,26 @@
                 </section>
             </section>
             <section class="action">
-                <button class="submit" onclick="doOCR()">Submit</button>
+                <button class="submit" onclick="doOCR()">Submit Single File (Sync)</button> <!-- Modified -->
+                <button class="submit" onclick="submitAsyncOCR()">Submit Multiple Files (Async)</button> <!-- NEW -->
             </section>
         </main>
+
+        <section id="job-dashboard" class="hidden">
+            <h2 id="job-dashboard-title">Active OCR Jobs</h2>
+            <div id="job-list-header" class="job-grid-row">
+                <span class="job-col-header">No.</span>
+                <span class="job-col-header">Job ID</span>
+                <span class="job-col-header">Filename</span>
+                <span class="job-col-header">Progress</span>
+                <span class="job-col-header">Status</span>
+                <span class="job-col-header">Duration</span>
+            </div>
+            <div id="job-list">
+
+            </div>
+        </section>
+
         <footer>
             <p>&copy; 2023 Entrypoint Systems. All rights reserved.</p>
             <p>Tesseract OCR Version: {{ tesseract_version }}</p>

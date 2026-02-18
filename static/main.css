@@ -18,18 +18,17 @@
   --header-background-color: #212121;
   --button-color: #212121;
 
-  /* EP theme colors from inline style */
+  /* EP theme colors from inline style (integrated) */
   --ep-blue: #1e3868;
   --ep-light-blue: #3fa9f5;
-  --ep-bg: #f4f6f9;
+  --ep-bg: #f4f6f9; /* Background for light theme, currently always used */
 }
 
 body {
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; /* Combined font-family */
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   margin: auto;
-  background-color: var(--ep-bg); /* Use EP background */
-  color: var(--text-color);
-  /* grid container settings */
+  background-color: var(--ep-bg);
+  color: var(--text-color); /* Fallback, should be overridden by specific rules */
   display: grid;
   grid-template-columns: 1fr;
   grid-template-rows: auto 1fr auto;
@@ -37,9 +36,8 @@ body {
     "header"
     "main"
     "footer";
-  min-height: 100vh; /* Added from inline style */
+  min-height: 100vh;
 }
-
 
 main {
   grid-area: main;
@@ -54,85 +52,62 @@ main {
 
 header {
   grid-area: header;
-  /* Merged styles from inline block, prioritizing flex layout */
-  background-color: #ffffff; /* From inline */
-  border-bottom: 4px solid var(--ep-light-blue); /* From inline */
-  padding: 10px 20px; /* From inline */
-  display: flex; /* From inline */
-  align-items: center; /* From inline */
-  justify-content: space-between; /* From inline */
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1); /* From inline */
-  
-  /* Original main.css grid settings removed as flex is now dominant for header */
-  /* grid-gap: 1em; */
-  /* grid-template-columns: repeat(12, 1fr); */
-  /* min-height: 10vh; */
-  /* margin: 0; */
-  /* align-items: center; */
-  /* padding: 0 5%; */
-  /* background-color: var(--header-background-color); */
-  /* border-bottom: 1px solid var(--border-color); */
+  background-color: #ffffff;
+  border-bottom: 4px solid var(--ep-light-blue);
+  padding: 10px 20px;
+  display: flex; /* Prioritizing flex for header content layout */
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
-header .brand { /* From inline */
+header .brand {
     display: flex;
     align-items: center;
     gap: 15px;
 }
-header .logo { /* From inline */
+header .logo {
     height: 50px;
 }
-header .title { /* Merged from inline and existing */
-  color: var(--ep-blue); /* From inline */
-  font-size: 1.5rem; /* From inline */
-  margin: 0; /* From inline */
-  /* Original main.css grid settings removed */
-  /* grid-column: span 4; */
-  /* justify-self: start; */
+header .title {
+  color: var(--ep-blue);
+  font-size: 1.5rem;
+  margin: 0;
 }
-
 
 footer {
   grid-area: footer;
-  /* Merged styles from inline block */
-  background-color: var(--ep-blue); /* From inline */
-  color: white; /* From inline */
-  padding: 20px; /* From inline */
-  text-align: center; /* From inline */
-  margin-top: auto; /* From inline */
-  
-  /* Original main.css grid settings retained/combined */
-  border-top: 1px solid var(--border-color); /* Kept from main.css */
-  /* margin-top: 1em; */ /* Replaced by margin-top: auto from inline */
+  background-color: var(--ep-blue);
+  color: white;
+  padding: 20px;
+  text-align: center;
+  margin-top: auto;
+  border-top: 1px solid var(--border-color);
   display: grid;
   grid-template-columns: 1fr;
-  /* padding: 0 5%; */ /* Replaced by padding: 20px from inline */
 }
-footer a { /* From inline */
+footer a {
     color: var(--ep-light-blue);
     text-decoration: none;
 }
 
-
-a { /* Retained from main.css for general links */
+a {
   cursor: pointer;
-  color: var(--text-color);
+  color: var(--text-color); /* Default link color */
   border-bottom: 1px solid var(--border-color);
   text-decoration: none;
 }
 
-
 .container {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  min-height: 40vh;
+  min-height: auto !important; /* Fixed: Removed global 40vh limit */
   column-gap: 1ch;
 }
 
 .drop, .result {
   display: grid;
   grid-template-columns: 1fr;
-
   align-items: start;
   align-content: start;
   justify-content: center;
@@ -140,11 +115,13 @@ a { /* Retained from main.css for general links */
   padding: 4px;
   border: 1px solid var(--border-color);
   border-radius: 2px;
-  overflow: auto; /* Added for scrollbars if content overflows */
+  overflow: auto;
 }
 
 .drop {
   grid-template-rows: 1fr 1fr 1fr 9fr;
+  color: var(--ep-blue) !important; /* Fixed: Dark Blue for text in drop area */
+  font-weight: bold;
 }
 
 .result {
@@ -161,16 +138,29 @@ a { /* Retained from main.css for general links */
 
 img,
 embed {
-  display: block; /* Ensures predictable block-level behavior */
+  display: block;
   width: 100%;
-  max-height: 80vh; /* Set a max-height to prevent excessive growth */
-  height: auto; /* Allow height to adjust naturally */
+  max-height: 80vh;
+  height: auto;
   object-fit: contain;
 }
 
+/* Fixed: ocr-pdf and ocr-img sizing */
+#ocr-pdf {
+  width: 100%;
+  height: 85vh; /* Uses 85% of the screen height to prevent odd scrolling */
+  border: 1px solid var(--border-color);
+  display: block;
+}
+
+#ocr-img {
+  height: 85vh;
+  object-fit: contain;
+}
+
+
 button.submit {
   cursor: pointer;
-
   border: 1px solid var(--border-color);
   border-radius: 2px;
   width: 25vw;
@@ -190,6 +180,8 @@ select.languages {
   border: none;
   border-bottom: 1px solid var(--border-color);
   outline: none;
+  background-color: white !important; /* Fixed: Visible on light bg */
+  color: #333 !important; /* Fixed: Dark text for dropdown */
 }
 
 input,
@@ -211,6 +203,170 @@ button {
   justify-items: center;
 }
 
+/* Clean, left-aligned timing list */
+#timing-info {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  color: var(--ep-blue);
+  min-height: auto;
+  margin: 10px 0;
+  padding: 10px;
+  border-left: 4px solid var(--ep-light-blue);
+  background: rgba(255, 255, 255, 0.5);
+}
+
+#timing-info p {
+  margin: 2px 0;
+  font-size: 0.9em;
+  font-weight: bold;
+}
+
+#timing-info span {
+  font-weight: normal;
+  color: #333;
+  margin-left: 5px;
+}
+
+
+/* Styling for job dashboard */
+#job-dashboard {
+    text-align: left; /* Align contents to the left (NEW) */
+    font-size: 0.9em; /* Slightly smaller base font for the dashboard */
+    padding: 10px 5%; /* Adjusted padding to match main content */
+    margin-top: 10px; /* Spacing from previous section */
+    width: 100%; /* Ensure it fills available width */
+    box-sizing: border-box; /* Include padding in width calculation */
+}
+
+#job-dashboard-title { /* NEW: Style for the H2 title */
+    color: var(--ep-blue); /* Dark blue color */
+    margin-bottom: 10px;
+}
+
+/* Base style for grid rows */
+.job-grid-row {
+    display: grid;
+    /* NEW: Define columns: No. ID Filename Progress Status Duration */
+    grid-template-columns: 0.5fr 1fr 2fr 1fr 1fr 1fr;
+    gap: 5px; /* Gap between cells */
+    padding: 5px;
+    align-items: center;
+    border-bottom: 1px solid var(--border-color);
+}
+
+#job-list-header { /* Styling for the header row */
+    font-weight: bold;
+    background-color: var(--header-background-color);
+    color: var(--text-color);
+    border-top-left-radius: 5px;
+    border-top-right-radius: 5px;
+    padding: 10px 5px; /* Slightly more padding for header */
+}
+
+/* Style for individual column headers */
+.job-col-header {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-align: left;
+}
+
+#job-list { /* Container for job entries (now a div) */
+    list-style: none; /* Keep none if we manually number, or remove if not <ol> */
+    padding: 0;
+    margin: 0;
+    border: 1px solid var(--border-color); /* Add border around the list container */
+    border-radius: 5px;
+    background-color: var(--background-color);
+    margin-top: 5px; /* Spacing from header */
+}
+
+.job-entry { /* This is now a <div> for each job */
+    /* Inherits grid-template-columns from .job-grid-row */
+    /* text-align: left is set on job-col-header, let's keep it here too */
+    cursor: pointer; /* Indicate clickable */
+}
+
+.job-entry:hover {
+    background-color: rgba(0, 0, 0, 0.1); /* Subtle hover effect */
+}
+
+/* Zebra striping for readability */
+#job-list .job-entry:nth-child(odd) {
+    background-color: rgba(255, 255, 255, 0.05);
+}
+#job-list .job-entry:nth-child(even) {
+    background-color: rgba(0, 0, 0, 0.05);
+}
+
+.job-entry > span { /* Styling for individual cells */
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-align: left;
+    padding: 5px; /* Match header padding */
+}
+
+
+.job-status {
+    font-weight: bold;
+    color: black; /* Default text color for status */
+    padding: 2px 5px; /* Add some padding to status indicator */
+    border-radius: 3px;
+    text-align: center;
+}
+
+/* NEW: Flashing animations */
+@keyframes flashing-green {
+    0%, 100% { background-color: transparent; color: limegreen; } /* Text color changes too */
+    50% { background-color: limegreen; color: black; }
+}
+
+@keyframes flashing-red {
+    0%, 100% { background-color: transparent; color: red; }
+    50% { background-color: red; color: white; }
+}
+
+@keyframes flashing-blue {
+    0%, 100% { background-color: transparent; color: dodgerblue; }
+    50% { background-color: dodgerblue; color: white; }
+}
+
+.job-status.status-pending { 
+    color: orange; /* Text color for pending */
+}
+
+.job-status.status-in_progress {
+    animation: flashing-green 1.5s infinite alternate; /* Flashing green */
+}
+.job-status.status-completed {
+    background-color: dodgerblue; /* Blue when done */
+    color: white; /* White text for blue background */
+}
+.job-status.status-failed {
+    background-color: red; /* Red when failed */
+    color: white; /* White text for red background */
+}
+.job-error {
+    color: red;
+    font-weight: bold;
+}
+.job-results {
+    list-style: none;
+    padding-left: 0;
+}
+.job-results li {
+    margin-bottom: 5px;
+    border-bottom: 1px dashed var(--border-color);
+    padding-bottom: 5px;
+}
+
+/* Remove this if not used or override with flashing */
+/* @keyframes pulse {
+    0% { transform: scale(1); opacity: 1; }
+    100% { transform: scale(1.05); opacity: 0.7; }
+} */
 
 
 @media (max-width: 450px) {
@@ -232,81 +388,4 @@ button {
     --header-background-color: #eeeeee;
     --button-color: #eeeeee;
   }
-}
-/* Clean, left-aligned timing list */
-#timing-info {
-  display: flex;          /* Switch from grid to flex for simpler alignment */
-  flex-direction: column; /* Stack lines vertically */
-  align-items: flex-start;/* Align everything to the left */
-  color: var(--ep-blue);  /* Dark blue text */
-  min-height: auto;       /* Remove the large 40vh gap */
-  margin: 10px 0;
-  padding: 10px;
-  border-left: 4px solid var(--ep-light-blue); /* Professional accent border */
-  background: rgba(255, 255, 255, 0.5);       /* Subtle background contrast */
-}
-
-#timing-info p {
-  margin: 2px 0;          /* Tighten spacing between lines */
-  font-size: 0.9em;
-  font-weight: bold;
-}
-
-#timing-info span {
-  font-weight: normal;
-  color: #333;            /* Darker grey for the actual data */
-  margin-left: 5px;       /* Small gap after the colon */
-}
-
-/* 2. Fix the PDF height to occupy the full area */
-#ocr-pdf {
-  width: 100%;
-  height: 85vh; /* Uses 85% of the screen height to prevent odd scrolling */
-  border: 1px solid var(--border-color);
-  display: block;
-}
-
-/* Optional: apply same height to image for consistency */
-#ocr-img {
-  height: 85vh;
-  object-fit: contain;
-}
-/* --- COMPACT UPLOAD AREA --- */
-.drop {
-  /* 1. Collapse the height */
-  min-height: auto !important;
-  height: auto !important;
-  
-  /* 2. Fix text visibility (Dark Blue) */
-  color: var(--ep-blue) !important;
-  font-weight: bold;
-  
-  /* 3. Tighten internal spacing */
-  padding: 5px 10px !important;
-  grid-template-rows: auto auto auto auto !important; /* Removes '1fr' stretching */
-  row-gap: 4px !important; /* Small gap between elements */
-  
-  /* 4. Visual border */
-  border: 1px dashed var(--border-color);
-  align-items: start;
-}
-
-/* Ensure the language dropdown fits the tight theme */
-select.languages {
-  font-size: 1em !important;
-  padding: 4px 0 !important;
-  margin-bottom: 2px !important;
-  background-color: white !important; /* Visible on light bg */
-  color: #333 !important;
-}
-
-/* Ensure the file button isn't too bulky */
-#uploadimage {
-  font-size: 0.9em !important;
-  margin-top: 2px !important;
-}
-
-/* Remove the global container's 40vh height limit */
-.container {
-  min-height: auto !important;
 }
