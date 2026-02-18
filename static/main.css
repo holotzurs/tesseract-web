@@ -17,13 +17,17 @@
   --border-color: #bdbdbd;
   --header-background-color: #212121;
   --button-color: #212121;
+
+  /* EP theme colors from inline style */
+  --ep-blue: #1e3868;
+  --ep-light-blue: #3fa9f5;
+  --ep-bg: #f4f6f9;
 }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen,
-    Ubuntu, Cantarell, "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; /* Combined font-family */
   margin: auto;
-  background-color: var(--background-color);
+  background-color: var(--ep-bg); /* Use EP background */
   color: var(--text-color);
   /* grid container settings */
   display: grid;
@@ -33,6 +37,7 @@ body {
     "header"
     "main"
     "footer";
+  min-height: 100vh; /* Added from inline style */
 }
 
 
@@ -44,51 +49,83 @@ main {
   align-content: start;
   margin: 0;
   padding: 1% 5%;
-  min-height: 60vh;
+  min-height: 30vh;
 }
 
 header {
   grid-area: header;
-  display: grid;
-  grid-gap: 1em;
-  grid-template-columns: repeat(12, 1fr);
-  min-height: 10vh;
-  min-height: 10vh;
-  margin: 0;
-  align-items: center;
-  padding: 0 5%;
-  background-color: var(--header-background-color);
-  border-bottom: 1px solid var(--border-color);
+  /* Merged styles from inline block, prioritizing flex layout */
+  background-color: #ffffff; /* From inline */
+  border-bottom: 4px solid var(--ep-light-blue); /* From inline */
+  padding: 10px 20px; /* From inline */
+  display: flex; /* From inline */
+  align-items: center; /* From inline */
+  justify-content: space-between; /* From inline */
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1); /* From inline */
+  
+  /* Original main.css grid settings removed as flex is now dominant for header */
+  /* grid-gap: 1em; */
+  /* grid-template-columns: repeat(12, 1fr); */
+  /* min-height: 10vh; */
+  /* margin: 0; */
+  /* align-items: center; */
+  /* padding: 0 5%; */
+  /* background-color: var(--header-background-color); */
+  /* border-bottom: 1px solid var(--border-color); */
+}
+
+header .brand { /* From inline */
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+header .logo { /* From inline */
+    height: 50px;
+}
+header .title { /* Merged from inline and existing */
+  color: var(--ep-blue); /* From inline */
+  font-size: 1.5rem; /* From inline */
+  margin: 0; /* From inline */
+  /* Original main.css grid settings removed */
+  /* grid-column: span 4; */
+  /* justify-self: start; */
 }
 
 
 footer {
   grid-area: footer;
-  border-top: 1px solid var(--border-color);
-  margin-top: 1em;
+  /* Merged styles from inline block */
+  background-color: var(--ep-blue); /* From inline */
+  color: white; /* From inline */
+  padding: 20px; /* From inline */
+  text-align: center; /* From inline */
+  margin-top: auto; /* From inline */
+  
+  /* Original main.css grid settings retained/combined */
+  border-top: 1px solid var(--border-color); /* Kept from main.css */
+  /* margin-top: 1em; */ /* Replaced by margin-top: auto from inline */
   display: grid;
   grid-template-columns: 1fr;
-  padding: 0 5%;
+  /* padding: 0 5%; */ /* Replaced by padding: 20px from inline */
+}
+footer a { /* From inline */
+    color: var(--ep-light-blue);
+    text-decoration: none;
 }
 
-a {
+
+a { /* Retained from main.css for general links */
   cursor: pointer;
-  color: var(--text-color);
   color: var(--text-color);
   border-bottom: 1px solid var(--border-color);
   text-decoration: none;
 }
 
-header .title {
-  font-size: 2em;
-  grid-column: span 4;
-  justify-self: start;
-}
 
 .container {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  min-height: 70vh;
+  min-height: 40vh;
   column-gap: 1ch;
 }
 
@@ -103,6 +140,7 @@ header .title {
   padding: 4px;
   border: 1px solid var(--border-color);
   border-radius: 2px;
+  overflow: auto; /* Added for scrollbars if content overflows */
 }
 
 .drop {
@@ -123,8 +161,10 @@ header .title {
 
 img,
 embed {
+  display: block; /* Ensures predictable block-level behavior */
   width: 100%;
-  height: 100%;
+  max-height: 80vh; /* Set a max-height to prevent excessive growth */
+  height: auto; /* Allow height to adjust naturally */
   object-fit: contain;
 }
 
@@ -192,4 +232,81 @@ button {
     --header-background-color: #eeeeee;
     --button-color: #eeeeee;
   }
+}
+/* Clean, left-aligned timing list */
+#timing-info {
+  display: flex;          /* Switch from grid to flex for simpler alignment */
+  flex-direction: column; /* Stack lines vertically */
+  align-items: flex-start;/* Align everything to the left */
+  color: var(--ep-blue);  /* Dark blue text */
+  min-height: auto;       /* Remove the large 40vh gap */
+  margin: 10px 0;
+  padding: 10px;
+  border-left: 4px solid var(--ep-light-blue); /* Professional accent border */
+  background: rgba(255, 255, 255, 0.5);       /* Subtle background contrast */
+}
+
+#timing-info p {
+  margin: 2px 0;          /* Tighten spacing between lines */
+  font-size: 0.9em;
+  font-weight: bold;
+}
+
+#timing-info span {
+  font-weight: normal;
+  color: #333;            /* Darker grey for the actual data */
+  margin-left: 5px;       /* Small gap after the colon */
+}
+
+/* 2. Fix the PDF height to occupy the full area */
+#ocr-pdf {
+  width: 100%;
+  height: 85vh; /* Uses 85% of the screen height to prevent odd scrolling */
+  border: 1px solid var(--border-color);
+  display: block;
+}
+
+/* Optional: apply same height to image for consistency */
+#ocr-img {
+  height: 85vh;
+  object-fit: contain;
+}
+/* --- COMPACT UPLOAD AREA --- */
+.drop {
+  /* 1. Collapse the height */
+  min-height: auto !important;
+  height: auto !important;
+  
+  /* 2. Fix text visibility (Dark Blue) */
+  color: var(--ep-blue) !important;
+  font-weight: bold;
+  
+  /* 3. Tighten internal spacing */
+  padding: 5px 10px !important;
+  grid-template-rows: auto auto auto auto !important; /* Removes '1fr' stretching */
+  row-gap: 4px !important; /* Small gap between elements */
+  
+  /* 4. Visual border */
+  border: 1px dashed var(--border-color);
+  align-items: start;
+}
+
+/* Ensure the language dropdown fits the tight theme */
+select.languages {
+  font-size: 1em !important;
+  padding: 4px 0 !important;
+  margin-bottom: 2px !important;
+  background-color: white !important; /* Visible on light bg */
+  color: #333 !important;
+}
+
+/* Ensure the file button isn't too bulky */
+#uploadimage {
+  font-size: 0.9em !important;
+  margin-top: 2px !important;
+}
+
+/* Remove the global container's 40vh height limit */
+.container {
+  min-height: auto !important;
 }

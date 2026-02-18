@@ -92,6 +92,7 @@ function doOCR(){
     const durationEl = document.querySelector("#duration");
 
     timingInfoEl.classList.remove("hidden");
+    timingInfoEl.style.display = 'block'; // Explicitly set display to block
     startTimeEl.textContent = startTime.toLocaleTimeString();
     endTimeEl.textContent = "";
     durationEl.textContent = "";
@@ -102,10 +103,22 @@ function doOCR(){
     })
     .then(response => response.json())
     .then(result => {
-        const endTime = new Date();
-        endTimeEl.textContent = endTime.toLocaleTimeString();
-        durationEl.textContent = endTime - startTime;
-        resultEl.value=result.error || result.text
+        // Updated to use server-provided timing info
+        const startTimeISO = result.start_time;
+        const endTimeISO = result.end_time;
+        const durationValue = result.duration;
+
+        if (startTimeISO) {
+            startTimeEl.textContent = new Date(startTimeISO).toLocaleTimeString();
+        }
+        if (endTimeISO) {
+            endTimeEl.textContent = new Date(endTimeISO).toLocaleTimeString();
+        }
+        if (durationValue) {
+            durationEl.textContent = durationValue;
+        }
+        
+        resultEl.value = result.error || result.text;
     })
     .catch(() => { /* Error. Inform the user */ })
 }

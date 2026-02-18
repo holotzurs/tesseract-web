@@ -2,6 +2,7 @@ import os
 import pathlib
 import requests
 import datetime
+import re # Added for regex
 
 import pdf2image
 import pytesseract
@@ -18,6 +19,18 @@ UPLOAD_FOLDER = "./static/uploads"
 app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
 app.config["MAX_CONTENT_LENGTH"] = 10 * 1024 * 1024
 app.config["SUPPORTED_FORMATS"] = ["png", "jpeg", "jpg", "bmp", "pnm", "gif", "tiff", "webp", "pdf"]
+
+
+def get_tesseract_version_string() -> str:
+    """Determines the Tesseract version string."""
+    try:
+        # Assuming pytesseract.get_tesseract_version() returns the cleaned version number
+        # based on user's debugging output.
+        return str(pytesseract.get_tesseract_version())
+    except pytesseract.TesseractNotFoundError:
+        return "Not Installed"
+    except Exception as e:
+        return f"Error: {e}"
 
 
 def pdf_to_img(pdf_file):
@@ -50,7 +63,7 @@ def get_languages() -> dict:
 
 @app.route("/", methods=["GET", "POST"])
 def index():
-    return render_template("index.html", languages=get_languages())
+    return render_template("index.html", languages=get_languages(), tesseract_version=get_tesseract_version_string())
 
 
 @app.route("/api/languages", methods=["GET"])
@@ -60,13 +73,22 @@ def listSupportedLanguages():
 
 @app.route("/api/ocr", methods=["POST"])
 def ocr():
+    start_time = datetime.datetime.now()
     f = request.files["file"]
     language = request.form.get("language", default="en")
     # create a secure filename
     filename = secure_filename(f.filename)
     file_extension = pathlib.Path(filename).suffix.split(".")[1]
     if file_extension not in app.config["SUPPORTED_FORMATS"]:
-        return jsonify(error="File format not supported")
+        end_time = datetime.datetime.now()
+        duration = (end_time - start_time).total_seconds() * 1000
+        return jsonify(
+            error="File format not supported",
+            tesseract_version=get_tesseract_version_string(),
+            start_time=start_time.isoformat(),
+            end_time=end_time.isoformat(),
+            duration=f"{duration:.2f}ms"
+        )
 
     # save file to /static/uploads
     filepath = os.path.join(app.config["UPLOAD_FOLDER"], filename)
@@ -81,15 +103,24 @@ def ocr():
 
     # remove the processed image
     os.remove(filepath)
+    
+    end_time = datetime.datetime.now()
+    duration = (end_time - start_time).total_seconds() * 1000
 
-    return jsonify(text=text)
+    return jsonify(
+        text=text,
+        tesseract_version=get_tesseract_version_string(),
+        start_time=start_time.isoformat(),
+        end_time=end_time.isoformat(),
+        duration=f"{duration:.2f}ms"
+    )
 
 
 @app.route("/api/v2/ocr", methods=["POST"])
 def ocr_v2():
     start_time = datetime.datetime.now()
     if not request.json or 'url' not in request.json:
-        return jsonify(error="URL is required"), 400
+        return jsonify(error="URL is required", tesseract_version=get_tesseract_version_string()), 400
     
     url = request.json['url']
     language = request.json.get('language', 'en')
@@ -98,7 +129,7 @@ def ocr_v2():
         response = requests.get(url, stream=True)
         response.raise_for_status()
     except requests.exceptions.RequestException as e:
-        return jsonify(error=str(e)), 400
+        return jsonify(error=str(e), tesseract_version=get_tesseract_version_string()), 400
 
     filename = secure_filename(url.split('/')[-1])
     filepath = os.path.join(app.config["UPLOAD_FOLDER"], filename)
@@ -110,7 +141,7 @@ def ocr_v2():
     file_extension = pathlib.Path(filename).suffix.split(".")[-1].lower()
     if file_extension not in app.config["SUPPORTED_FORMATS"]:
         os.remove(filepath)
-        return jsonify(error="File format not supported")
+        return jsonify(error="File format not supported", tesseract_version=get_tesseract_version_string())
         
     if file_extension == "pdf":
         text = pdf_to_text(filepath, language)
@@ -127,7 +158,8 @@ def ocr_v2():
         start_time=start_time.isoformat(),
         end_time=end_time.isoformat(),
         duration=f"{duration:.2f}ms",
-        text=text
+        text=text,
+        tesseract_version=get_tesseract_version_string()
     )
 
 

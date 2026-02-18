@@ -8,6 +8,11 @@ import pytest
 # Assuming your Flask app instance is named 'app' in ocr.py
 from ocr import app, UPLOAD_FOLDER
 
+# Define a consistent mocked Tesseract version
+MOCKED_TESSERACT_VERSION = "5.5.0-mock"
+
+# Removed the global mock_tesseract_version fixture
+
 @pytest.fixture
 def client():
     # Set the app to testing mode
@@ -17,16 +22,21 @@ def client():
     os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
     with app.test_client() as client:
         yield client
-    # Clean up after tests
-    # os.rmdir(app.config['UPLOAD_FOLDER']) # This will fail if not empty
+    # Clean up after tests (if os.rmdir needs to be used, ensure dir is empty)
+    # import shutil
+    # shutil.rmtree(app.config['UPLOAD_FOLDER'], ignore_errors=True)
+
 
 # Test the home page
-def test_home_page(client):
+@patch('ocr.get_tesseract_version_string', return_value=MOCKED_TESSERACT_VERSION)
+def test_home_page(mock_get_tesseract_version_string, client):
     response = client.get('/')
     assert response.status_code == 200
-    assert b"Tesseract OCR" in response.data # Check for the actual title
+    assert b"Tesseract OCR" in response.data # Existing assertion for the title
+    assert f"Tesseract OCR Version: {MOCKED_TESSERACT_VERSION}".encode() in response.data
 
-# Test the /api/languages endpoint
+
+# Test the /api/languages endpoint - no change needed, as it doesn't return tesseract_version
 def test_api_languages(client):
     response = client.get('/api/languages')
     assert response.status_code == 200
@@ -34,18 +44,18 @@ def test_api_languages(client):
     assert 'languages' in data
     assert isinstance(data['languages'], dict)
 
+
 # Test the /api/ocr endpoint
+@patch('ocr.get_tesseract_version_string', return_value=MOCKED_TESSERACT_VERSION)
 @patch('ocr.ocr_core')
 @patch('ocr.os.remove')
-@patch('PIL.Image.open') # Patch Image.open
-def test_api_ocr_image_upload(mock_image_open, mock_os_remove, mock_ocr_core, client):
+@patch('PIL.Image.open')
+def test_api_ocr_image_upload(mock_image_open, mock_os_remove, mock_ocr_core, mock_get_tesseract_version_string, client):
     mock_ocr_core.return_value = "Mocked OCR Text"
     
-    # Mock Image.open to return a mock Image object
     mock_image_instance = MagicMock()
     mock_image_open.return_value = mock_image_instance
 
-    # Create a dummy image file for upload
     data = {
         'file': (io.BytesIO(b"dummy image content"), 'test_image.png'),
         'language': 'en'
@@ -56,22 +66,26 @@ def test_api_ocr_image_upload(mock_image_open, mock_os_remove, mock_ocr_core, cl
     json_data = json.loads(response.data)
     assert 'text' in json_data
     assert json_data['text'] == "Mocked OCR Text"
+    assert 'tesseract_version' in json_data
+    assert json_data['tesseract_version'] == MOCKED_TESSERACT_VERSION
+    assert 'start_time' in json_data
+    assert 'end_time' in json_data
+    assert 'duration' in json_data
     
     mock_image_open.assert_called_once()
-
     mock_ocr_core.assert_called_once_with(mock_image_instance, 'en')
-    mock_os_remove.assert_called_once() # Ensure the temporary file was "removed"
+    mock_os_remove.assert_called_once()
 
+
+@patch('ocr.get_tesseract_version_string', return_value=MOCKED_TESSERACT_VERSION)
 @patch('ocr.pdf_to_text')
 @patch('ocr.os.remove')
-@patch('PIL.Image.open') # Patch Image.open for the case where it might be called internally by pdf_to_text if not fully mocked
-def test_api_ocr_pdf_upload(mock_image_open, mock_os_remove, mock_pdf_to_text, client):
+@patch('PIL.Image.open')
+def test_api_ocr_pdf_upload(mock_image_open, mock_os_remove, mock_pdf_to_text, mock_get_tesseract_version_string, client):
     mock_pdf_to_text.return_value = "Mocked PDF OCR Text"
     
-    # Mock Image.open if it somehow gets called
     mock_image_open.return_value = MagicMock()
 
-    # Create a dummy PDF file for upload
     data = {
         'file': (io.BytesIO(b"dummy pdf content"), 'test_document.pdf'),
         'language': 'en'
@@ -81,26 +95,31 @@ def test_api_ocr_pdf_upload(mock_image_open, mock_os_remove, mock_pdf_to_text, c
     assert response.status_code == 200
     json_data = json.loads(response.data)
     assert 'text' in json_data
-    assert json_data['text'] == "Mocked PDF OCR Text"
+    assert json_data['text'] == "Mocked PDF OCR Text" # Corrected line
+    assert 'tesseract_version' in json_data
+    assert json_data['tesseract_version'] == MOCKED_TESSERACT_VERSION
+    assert 'start_time' in json_data
+    assert 'end_time' in json_data
+    assert 'duration' in json_data
     
     mock_pdf_to_text.assert_called_once()
     mock_os_remove.assert_called_once()
 
+
 # Test the /api/v2/ocr endpoint
+@patch('ocr.get_tesseract_version_string', return_value=MOCKED_TESSERACT_VERSION)
 @patch('ocr.requests.get')
 @patch('ocr.ocr_core')
 @patch('ocr.os.remove')
-@patch('PIL.Image.open') # Patch Image.open
-def test_api_v2_ocr_url(mock_image_open, mock_os_remove, mock_ocr_core, mock_requests_get, client):
+@patch('PIL.Image.open')
+def test_api_v2_ocr_url(mock_image_open, mock_os_remove, mock_ocr_core, mock_requests_get, mock_get_tesseract_version_string, client):
     mock_ocr_core.return_value = "Mocked OCR from URL"
     
-    # Correctly mock requests.get return value
     mock_response_instance = MagicMock()
     mock_response_instance.raise_for_status.return_value = None
     mock_response_instance.iter_content.return_value = [b"dummy image content for url"]
     mock_requests_get.return_value = mock_response_instance
 
-    # Mock Image.open to return a mock Image object
     mock_image_open.return_value = MagicMock()
 
     data = {
@@ -114,25 +133,32 @@ def test_api_v2_ocr_url(mock_image_open, mock_os_remove, mock_ocr_core, mock_req
     assert 'text' in json_data
     assert json_data['text'] == "Mocked OCR from URL"
     assert 'duration' in json_data
+    assert 'tesseract_version' in json_data
+    assert json_data['tesseract_version'] == MOCKED_TESSERACT_VERSION
     
     mock_requests_get.assert_called_once_with(data['url'], stream=True)
     mock_image_open.assert_called_once()
     mock_ocr_core.assert_called_once()
     mock_os_remove.assert_called_once()
 
-def test_api_v2_ocr_missing_url(client):
+
+@patch('ocr.get_tesseract_version_string', return_value=MOCKED_TESSERACT_VERSION)
+def test_api_v2_ocr_missing_url(mock_get_tesseract_version_string, client):
     response = client.post('/api/v2/ocr', json={})
     assert response.status_code == 400
     json_data = json.loads(response.data)
     assert 'error' in json_data
     assert json_data['error'] == "URL is required"
+    assert 'tesseract_version' in json_data
+    assert json_data['tesseract_version'] == MOCKED_TESSERACT_VERSION
 
-# Test for the bug: API should return 400 for unsupported format, not 200
+
+@patch('ocr.get_tesseract_version_string', return_value=MOCKED_TESSERACT_VERSION)
 @patch('ocr.requests.get')
 @patch('ocr.ocr_core')
 @patch('ocr.os.remove')
 @patch('PIL.Image.open')
-def test_api_v2_ocr_unsupported_format(mock_image_open, mock_os_remove, mock_ocr_core, mock_requests_get, client):
+def test_api_v2_ocr_unsupported_format(mock_image_open, mock_os_remove, mock_ocr_core, mock_requests_get, mock_get_tesseract_version_string, client):
     mock_response_instance = MagicMock()
     mock_response_instance.raise_for_status.return_value = None
     mock_response_instance.iter_content.return_value = [b"dummy content"]
@@ -152,16 +178,18 @@ def test_api_v2_ocr_unsupported_format(mock_image_open, mock_os_remove, mock_ocr
     json_data = json.loads(response.data)
     assert 'error' in json_data
     assert json_data['error'] == "File format not supported"
+    assert 'tesseract_version' in json_data
+    assert json_data['tesseract_version'] == MOCKED_TESSERACT_VERSION
     
     mock_requests_get.assert_called_once()
-    # No calls to image_open, ocr_core or os.remove should happen for unsupported formats
     mock_image_open.assert_not_called()
     mock_ocr_core.assert_not_called()
-    mock_os_remove.assert_called_once() # os.remove for the downloaded file
+    mock_os_remove.assert_called_once()
 
-# Helper function to stop mocks if needed for debugging or specific test scenarios
+
+# Helper function to stop patches. This fixture is included for completeness,
+# though direct patching in tests often handles cleanup implicitly.
 @pytest.fixture(autouse=True)
 def cleanup_patches():
     yield
-    # Ensure all patches are stopped after each test
     patch.stopall()
