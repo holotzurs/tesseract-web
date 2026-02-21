@@ -46,13 +46,17 @@ function resetVisualDisplay() {
 }
 
 function displayImage() {
+    resetVisualDisplay();
     ocrImg.src = URL.createObjectURL(state.file);
     ocrImg.classList.remove('hidden');
+    ocrCanvas.classList.add('hidden');
 }
 
 function displayPdf() {
+    resetVisualDisplay();
     ocrPdf.src = URL.createObjectURL(state.file);
     ocrPdf.classList.remove('hidden');
+    ocrCanvas.classList.add('hidden');
 }
 
 function drawOCRData(ocrDataArray, imageSrc) {
@@ -108,6 +112,11 @@ input.addEventListener("change", () => {
     if (files.length > 0) {
         onDrop(files[0]);
     }
+});
+
+// Reset input value on click to allow re-selecting the same file
+input.addEventListener("click", (e) => {
+    e.target.value = null;
 });
 
 // --- Drag and Drop functionality ---
@@ -308,12 +317,15 @@ function updateTimingInfoDisplay(startTimeISO, endTimeISO, durationValue) {
 function doOCR(){
     const resultEl = document.querySelector("#resulttext");
     resultEl.value = "Scanning..."; // Clear previous results and show scanning message
-    resetVisualDisplay(); // Ensure display area is cleared
+    
+    // Provide visual feedback instead of clearing everything
+    document.querySelector('main').classList.add('scanning');
 
     var data = new FormData();
     const language = document.getElementById('source_lang').value;
     if (!state.file) {
         alert("Please select a file first.");
+        document.querySelector('main').classList.remove('scanning');
         return;
     }
     data.append('file', state.file);
@@ -338,6 +350,7 @@ function doOCR(){
       body: data
     })
     .then(response => {
+        document.querySelector('main').classList.remove('scanning');
         if (!response.ok) {
             return response.json().then(err => { throw new Error(err.error || 'Server error'); });
         }
@@ -356,22 +369,23 @@ function doOCR(){
 
         resultEl.value = JSON.stringify(result, null, 2); // Show JSON result
 
-        resetVisualDisplay(); // Ensure clean slate before displaying visual
         if (result.image_base64 && result.ocr_data) {
             drawOCRData(result.ocr_data, result.image_base64);
         } else if (result.image_base64) {
             ocrImg.src = result.image_base64;
             ocrImg.classList.remove('hidden');
+            ocrCanvas.classList.add('hidden');
+            ocrPdf.classList.add('hidden');
         } else if (state.file.type.indexOf("application/pdf") >= 0) {
             // For local PDF, use the blob URL from state.file
             ocrPdf.src = URL.createObjectURL(state.file);
             ocrPdf.classList.remove('hidden');
-        } else {
-            // No visual data for other types, just ensure display is reset
-            resetVisualDisplay();
+            ocrImg.classList.add('hidden');
+            ocrCanvas.classList.add('hidden');
         }
     })
     .catch(error => {
+        document.querySelector('main').classList.remove('scanning');
         console.error("Error during OCR:", error);
         activeJobs[jobId] = {
             ...activeJobs[jobId],
@@ -389,13 +403,16 @@ function doOCR(){
 async function submitAsyncOCR(){
     const resultEl = document.querySelector("#resulttext");
     resultEl.value = "Submitting async job...";
-    resetVisualDisplay(); // Ensure display area is cleared
+    
+    // Provide visual feedback instead of clearing everything
+    document.querySelector('main').classList.add('scanning');
 
     const uploadImageInput = document.querySelector("#uploadimage");
     const selectedFiles = uploadImageInput.files;
     
     if (selectedFiles.length === 0) {
         alert("Please select at least one file for asynchronous processing.");
+        document.querySelector('main').classList.remove('scanning');
         return;
     }
 
@@ -425,6 +442,7 @@ async function submitAsyncOCR(){
         });
 
         const jsonResponse = await response.json();
+        document.querySelector('main').classList.remove('scanning');
 
         if (response.ok) {
             const jobId = jsonResponse.job_id;
@@ -445,6 +463,7 @@ async function submitAsyncOCR(){
             resultEl.value = `Error submitting async job: ${jsonResponse.error || response.statusText}`;
         }
     } catch (error) {
+        document.querySelector('main').classList.remove('scanning');
         console.error("Error submitting async job:", error);
         resultEl.value = `Network Error: ${error.message || error}`;
     }

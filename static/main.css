@@ -166,9 +166,7 @@ select.languages {
     display: block;
 }
 #ocr-canvas {
-    position: absolute; /* Needed for overlaying on img if visual OCR is re-implemented */
-    top: 0;
-    left: 0;
+    /* Canvas will be centered by the flex container, just like the image */
 }
 .resulttext {
   width: 100%;
@@ -235,6 +233,16 @@ footer a {
 /* Helper classes */
 .hidden {
   display: none !important;
+}
+
+@keyframes pulse {
+    0% { opacity: 1; }
+    50% { opacity: 0.7; }
+    100% { opacity: 1; }
+}
+.scanning #file-display-container {
+    animation: pulse 1.5s infinite ease-in-out;
+    border-color: var(--ep-light-blue);
 }
 
 @media (max-width: 768px) {
