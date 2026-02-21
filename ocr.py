@@ -282,6 +282,14 @@ def ocr():
         
         single_result = _process_single_ocr_task(processed_file_input)
         
+        end_time_overall = datetime.datetime.now()
+        duration_overall = (end_time_overall - start_time_overall).total_seconds() * 1000
+        
+        # Ensure timing fields are in the result for consistency
+        single_result["start_time"] = start_time_overall.isoformat()
+        single_result["end_time"] = end_time_overall.isoformat()
+        single_result["duration"] = f"{duration_overall:.2f}ms"
+        
         status_code = 200 if not single_result["error"] else 400
         return jsonify(single_result), status_code
     except ValueError as e:

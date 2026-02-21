@@ -214,6 +214,7 @@ async function pollJobStatus(jobId) {
             activeJobs[jobId] = { ...activeJobs[jobId], ...jobData };
             // Auto-display result of last completed job
             if (jobData.status === 'completed' || jobData.status === 'failed') {
+                updateTimingInfoDisplay(jobId);
                 const results = jobData.results || [];
                 if (results.length > 0) {
                     resetVisualDisplay(); 
@@ -271,6 +272,7 @@ function displayJob(jobId, jobData, jobIndex) {
         
         jobEl.onclick = () => {
             const results = jobData.results || [];
+            updateTimingInfoDisplay(jobId);
             if (results.length > 0) {
                 resetVisualDisplay();
                 // Show full JSON of all results in the textarea
@@ -327,9 +329,57 @@ function displayJob(jobId, jobData, jobIndex) {
     if (noJobsP) { noJobsP.remove(); }
 }
 
-function updateTimingInfoDisplay(startTimeISO, endTimeISO, durationValue) {
-    // Hidden in simple layout for now, or just output to console
-    console.log(`Job Timing - Start: ${startTimeISO}, End: ${endTimeISO}, Duration: ${durationValue}`);
+// --- Job Timing Logic ---
+let timingIntervalId = null;
+let currentTimingJobId = null;
+
+function updateTimingInfoDisplay(jobId) {
+    const jobData = activeJobs[jobId];
+    if (!jobData) return;
+
+    currentTimingJobId = jobId;
+    const timingInfoEl = document.querySelector("#timing-info");
+    const startTimeEl = document.querySelector("#start-time");
+    const endTimeEl = document.querySelector("#end-time");
+    const durationEl = document.querySelector("#duration");
+
+    timingInfoEl.classList.remove("hidden");
+    startTimeEl.textContent = jobData.overall_start_time ? new Date(jobData.overall_start_time).toLocaleTimeString() : 'N/A';
+    
+    if (jobData.status === 'completed' || jobData.status === 'failed') {
+        endTimeEl.textContent = jobData.overall_end_time ? new Date(jobData.overall_end_time).toLocaleTimeString() : 'N/A';
+        durationEl.textContent = jobData.overall_duration || 'N/A';
+        // Stop any active interval if this is the job we're tracking
+        if (timingIntervalId) {
+            clearInterval(timingIntervalId);
+            timingIntervalId = null;
+        }
+    } else {
+        endTimeEl.textContent = 'Running...';
+        // Clear any previous interval before starting a new one
+        if (timingIntervalId) {
+            clearInterval(timingIntervalId);
+            timingIntervalId = null;
+        }
+        
+        // Start live duration update
+        timingIntervalId = setInterval(() => {
+            if (currentTimingJobId && activeJobs[currentTimingJobId]) {
+                const job = activeJobs[currentTimingJobId];
+                if (job.status === 'completed' || job.status === 'failed') {
+                    durationEl.textContent = job.overall_duration || 'N/A';
+                    endTimeEl.textContent = job.overall_end_time ? new Date(job.overall_end_time).toLocaleTimeString() : 'N/A';
+                    clearInterval(timingIntervalId);
+                    timingIntervalId = null;
+                    return;
+                }
+                const start = new Date(job.overall_start_time).getTime();
+                const now = Date.now();
+                const elapsed = ((now - start) / 1000).toFixed(2);
+                durationEl.textContent = elapsed + 's';
+            }
+        }, 100);
+    }
 }
 
 
@@ -362,6 +412,7 @@ function doOCR(){
         files: [{ filename: state.file.name, language: language }]
     };
     displayJob(jobId, activeJobs[jobId]);
+    updateTimingInfoDisplay(jobId);
     startPolling(); // Ensure polling is active for job updates
 
     fetch('/api/ocr', {
@@ -380,11 +431,13 @@ function doOCR(){
             ...activeJobs[jobId],
             status: result.error ? 'failed' : 'completed',
             results: [{ ...result, filename: state.file.name }],
+            overall_start_time: result.start_time || activeJobs[jobId].overall_start_time,
             overall_end_time: result.end_time || new Date().toISOString(),
             overall_duration: result.duration,
             error: result.error
         };
         displayJob(jobId, activeJobs[jobId]); // Update job entry in dashboard
+        updateTimingInfoDisplay(jobId); // Update final timing info display
 
         resultEl.value = JSON.stringify(result, null, 2); // Show JSON result
 
@@ -476,6 +529,7 @@ async function submitAsyncOCR(){
                 files: filesPayload
             };
             displayJob(jobId, activeJobs[jobId]);
+            updateTimingInfoDisplay(jobId);
             startPolling();
             resultEl.value = jsonResponse.message;
         } else {
