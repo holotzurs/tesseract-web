@@ -188,13 +188,20 @@ function updateJobDashboard() {
             displayJob(jobId, jobData, index + 1);
             if (jobData.status === 'pending' || jobData.status === 'in_progress') {
                 hasActivePollingJobs = true;
-                pollJobStatus(jobId);
             }
         });
     }
 
     if (!hasActivePollingJobs) {
         stopPolling();
+    } else {
+        // Only poll for jobs that are actually active
+        sortedJobIds.forEach(jobId => {
+            const jobData = activeJobs[jobId];
+            if (jobData.status === 'pending' || jobData.status === 'in_progress') {
+                pollJobStatus(jobId);
+            }
+        });
     }
 }
 
@@ -207,26 +214,34 @@ async function pollJobStatus(jobId) {
             activeJobs[jobId] = { ...activeJobs[jobId], ...jobData };
             // Auto-display result of last completed job
             if (jobData.status === 'completed' || jobData.status === 'failed') {
-                const result = jobData.results && jobData.results.length > 0 ? jobData.results[0] : null;
-                if (result) {
-                    resultTextarea.value = JSON.stringify(result, null, 2);
-                    // Visual display logic for the auto-updated job (simplified)
-                    resetVisualDisplay();
-                    if (result.image_base64 && result.ocr_data) {
-                        drawOCRData(result.ocr_data, result.image_base64);
-                    } else if (result.image_base64) {
-                        ocrImg.src = result.image_base64;
+                const results = jobData.results || [];
+                if (results.length > 0) {
+                    resetVisualDisplay(); 
+                    // Show full JSON of all results in the textarea
+                    resultTextarea.value = JSON.stringify(results, null, 2);
+
+                    // For visual display, we show the first successful result
+                    const firstResult = results[0];
+                    if (firstResult.image_base64 && firstResult.ocr_data) {
+                        drawOCRData(firstResult.ocr_data, firstResult.image_base64);
+                    } else if (firstResult.image_base64) {
+                        ocrImg.src = firstResult.image_base64;
                         ocrImg.classList.remove('hidden');
-                    } else if (jobData.files && jobData.files.length > 0 && jobData.files[0].filename.endsWith(".pdf")) {
-                         // Use the original blob from state.file if available, otherwise just use src
-                        if (state.file && state.file.type.indexOf("application/pdf") >= 0) {
+                        ocrCanvas.classList.add('hidden');
+                        ocrPdf.classList.add('hidden');
+                    } else if (firstResult.source && firstResult.source.endsWith(".pdf")) {
+                         // Use the original blob from state.file if it matches the filename, otherwise use source URL
+                        if (state.file && state.file.name === firstResult.filename) {
                             ocrPdf.src = URL.createObjectURL(state.file);
                         } else {
-                            // Fallback for async jobs or jobs without state.file, try result.source if it's a direct URL to PDF
-                            ocrPdf.src = result.source; // Might be a full URL, or /static/uploads/
+                            ocrPdf.src = firstResult.source.startsWith("filepath://") ? firstResult.source.replace("filepath://", "/static/uploads/") : firstResult.source;
                         }
                         ocrPdf.classList.remove('hidden');
+                        ocrImg.classList.add('hidden');
+                        ocrCanvas.classList.add('hidden');
                     }
+                } else if (jobData.error) {
+                    resultTextarea.value = `Job Failed: ${jobData.error}`;
                 }
             }
         } else {
@@ -259,21 +274,33 @@ function displayJob(jobId, jobData, jobIndex) {
         `;
         
         jobEl.onclick = () => {
-            resetVisualDisplay(); // Clear everything
-            const result = jobData.results && jobData.results.length > 0 ? jobData.results[0] : null;
-            if (result) {
-                resultTextarea.value = JSON.stringify(result, null, 2);
-                if (result.image_base64 && result.ocr_data) {
-                    drawOCRData(result.ocr_data, result.image_base64);
-                } else if (result.image_base64) {
-                    ocrImg.src = result.image_base64;
+            const results = jobData.results || [];
+            if (results.length > 0) {
+                resetVisualDisplay();
+                // Show full JSON of all results in the textarea
+                resultTextarea.value = JSON.stringify(results, null, 2);
+
+                const firstResult = results[0];
+                if (firstResult.image_base64 && firstResult.ocr_data) {
+                    drawOCRData(firstResult.ocr_data, firstResult.image_base64);
+                } else if (firstResult.image_base64) {
+                    ocrImg.src = firstResult.image_base64;
                     ocrImg.classList.remove('hidden');
-                } else if (result.source && result.source.endsWith(".pdf")) {
-                    // This path will only handle PDFs that come as direct URLs (e.g., from async job results)
-                    // For local PDF files, they'd need to be re-read from state.file (if still available)
-                    ocrPdf.src = result.source.startsWith("filepath://") ? result.source.replace("filepath://", "/static/uploads/") : result.source;
+                    ocrCanvas.classList.add('hidden');
+                    ocrPdf.classList.add('hidden');
+                } else if (firstResult.source && (firstResult.source.endsWith(".pdf") || firstResult.filename && firstResult.filename.endsWith(".pdf"))) {
+                    // Try to use original blob if filename matches, otherwise source URL
+                    if (state.file && state.file.name === firstResult.filename) {
+                        ocrPdf.src = URL.createObjectURL(state.file);
+                    } else {
+                        ocrPdf.src = firstResult.source.startsWith("filepath://") ? firstResult.source.replace("filepath://", "/static/uploads/") : firstResult.source;
+                    }
                     ocrPdf.classList.remove('hidden');
+                    ocrImg.classList.add('hidden');
+                    ocrCanvas.classList.add('hidden');
                 }
+            } else if (jobData.status === 'pending' || jobData.status === 'in_progress') {
+                resultTextarea.value = `Job is ${jobData.status}...`;
             } else {
                 resultTextarea.value = "No results available for this job yet.";
             }
