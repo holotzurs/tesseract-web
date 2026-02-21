@@ -118,22 +118,52 @@ select.languages {
 #file-display-container {
     position: relative;
     width: 100%;
-    min-height: 250px; /* Minimum height for visual content */
+    min-height: 700px; /* Increased initial height */
     background-color: #f0f0f0;
     border: 1px dashed var(--border-color);
     display: flex;
+    flex-direction: column; /* Better for custom resizer bar */
     justify-content: center;
     align-items: center;
-    overflow: hidden; /* Important to prevent scrollbars */
-    flex-grow: 1; /* Allow it to grow in flex container */
+    overflow: hidden; 
+    flex-grow: 1;
 }
-#ocr-img, #ocr-pdf, #ocr-canvas {
+#file-display-resizer {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 15px;
+    background-color: #e0e0e0;
+    cursor: ns-resize;
+    z-index: 10;
+    border-top: 1px solid var(--border-color);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+#file-display-resizer::after {
+    content: "";
+    width: 30px;
+    height: 3px;
+    background-color: #999;
+    border-radius: 2px;
+}
+#file-display-resizer:hover {
+    background-color: var(--ep-light-blue);
+}
+#ocr-img, #ocr-canvas {
     max-width: 100%;
-    max-height: 100%;
-    width: auto; /* Allow natural sizing */
-    height: auto; /* Allow natural sizing */
-    object-fit: contain; /* Scale down to fit */
-    display: block; /* Ensure it respects width/height */
+    max-height: calc(100% - 15px);
+    width: auto;
+    height: auto;
+    object-fit: contain;
+    display: block;
+}
+#ocr-pdf {
+    width: 100%;
+    height: calc(100% - 15px); /* Leave room for resizer */
+    display: block;
 }
 #ocr-canvas {
     position: absolute; /* Needed for overlaying on img if visual OCR is re-implemented */

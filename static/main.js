@@ -5,6 +5,31 @@ const ocrPdf = document.querySelector("#ocr-pdf");
 const ocrCanvas = document.querySelector("#ocr-canvas"); // Kept for future flexibility, currently hidden
 const fileDisplayContainer = document.querySelector("#file-display-container");
 const resultTextarea = document.querySelector("#resulttext");
+const fileResizer = document.querySelector("#file-display-resizer");
+
+// --- Custom Resize Logic ---
+let isResizing = false;
+
+fileResizer.addEventListener('mousedown', (e) => {
+    isResizing = true;
+    document.body.style.cursor = 'ns-resize'; // Global cursor while resizing
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', () => {
+        isResizing = false;
+        document.body.style.cursor = 'default';
+        document.removeEventListener('mousemove', handleMouseMove);
+    });
+});
+
+function handleMouseMove(e) {
+    if (!isResizing) return;
+    const containerTop = fileDisplayContainer.getBoundingClientRect().top;
+    const newHeight = e.clientY - containerTop;
+    if (newHeight > 200) { // Minimum height
+        fileDisplayContainer.style.height = newHeight + 'px';
+        fileDisplayContainer.style.minHeight = newHeight + 'px'; // Ensure it sticks
+    }
+}
 
 let state = {
     isDragging: false,
