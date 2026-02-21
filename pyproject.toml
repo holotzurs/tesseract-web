@@ -18,6 +18,7 @@ dependencies = [
     "langcodes[data]==3.5.1",
     "language-data==1.4.0",
     "requests",
+    "pandas",
 ]
 
 

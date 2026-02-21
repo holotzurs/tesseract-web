@@ -24,56 +24,52 @@
                 <a href="https://www.entrypoint.co.il/contact-us/" style="color: var(--ep-blue); text-decoration: none; font-weight: bold;">Contact Us</a>
             </nav>
         </header>
-        <main>
-            <section id="timing-info" class="container hidden">
-                <p>Start time: <span id="start-time"></span></p>
-                <p>End time: <span id="end-time"></span></p>
-                <p>Duration: <span id="duration"></span> ms</p>
+
+        <main class="simple-layout">
+            <section class="controls-area">
+                <select class="languages" id="source_lang">
+                    {% for code in languages %}
+                        {% if code == "en" %}
+                        <option value= "{{code}}" selected>{{code}} - {{languages[code]}}</option>"
+                        {% else %}
+                        <option value= "{{code}}">{{code}} - {{languages[id]}}</option>"
+                        {% endif %}
+                    {% endfor %}
+                </select>
+
+                <p>Select an image or PDF for OCR:</p>
+                <input id="uploadimage" type="file" name="file" accept="image/*, application/pdf" multiple />
+                
+                <div class="button-group">
+                    <button class="submit" onclick="doOCR()">Submit Single File (Sync)</button>
+                    <button class="submit" onclick="submitAsyncOCR()">Submit Multiple Files (Async)</button>
+                </div>
             </section>
 
-            <section class="container">
-
-                <section class="drop">
-
-                    <select class="languages" id="source_lang">
-                        {% for code in languages %}
-                            {% if code == "en" %}
-                            <option value= "{{code}}" selected>{{code}} - {{languages[code]}}</option>"
-                            {% else %}
-                            <option value= "{{code}}">{{code}} - {{languages[id]}}</option>"
-                            {% endif %}
-                        {% endfor %}
-                    </select>
-
-                    <p>Drop, paste or upload an image or pdf here</p>
-                    <input id="uploadimage" type="file" name="file" accept="image/*, application/pdf" multiple />
+            <section class="display-area">
+                <div id="file-display-container">
                     <embed class="hidden" id="ocr-pdf"/>
                     <img class="hidden" id="ocr-img" />
-                </section>
-                <section class="result">
-                    <textarea class="resulttext" id="resulttext"></textarea>
-                </section>
+                    <canvas class="hidden" id="ocr-canvas"></canvas> <!-- Keep canvas for potential future use if visual OCR is needed -->
+                </div>
+                <textarea class="resulttext" id="resulttext" placeholder="OCR Results will appear here..."></textarea>
             </section>
-            <section class="action">
-                <button class="submit" onclick="doOCR()">Submit Single File (Sync)</button> <!-- Modified -->
-                <button class="submit" onclick="submitAsyncOCR()">Submit Multiple Files (Async)</button> <!-- NEW -->
+            
+            <section id="job-dashboard">
+                <h2 id="job-dashboard-title">Active OCR Jobs</h2>
+                <div id="job-list-header" class="job-grid-row">
+                    <span class="job-col-header">No.</span>
+                    <span class="job-col-header">Job ID</span>
+                    <span class="job-col-header">Filename</span>
+                    <span class="job-col-header">Progress</span>
+                    <span class="job-col-header">Status</span>
+                    <span class="job-col-header">Duration</span>
+                </div>
+                <div id="job-list">
+                    <p class='no-jobs-message'>No active jobs yet.</p>
+                </div>
             </section>
         </main>
-
-        <section id="job-dashboard" class="hidden">
-            <h2 id="job-dashboard-title">Active OCR Jobs</h2>
-            <div id="job-list-header" class="job-grid-row">
-                <span class="job-col-header">No.</span>
-                <span class="job-col-header">Job ID</span>
-                <span class="job-col-header">Filename</span>
-                <span class="job-col-header">Progress</span>
-                <span class="job-col-header">Status</span>
-                <span class="job-col-header">Duration</span>
-            </div>
-            <div id="job-list">
-
-            </div>
-        </section>
 
         <footer>
             <p>&copy; 2023 Entrypoint Systems. All rights reserved.</p>
@@ -85,5 +81,4 @@
         </footer>
         <script src="{{ url_for('static', filename='main.js') }}"></script>
     </body>
-
 </html>

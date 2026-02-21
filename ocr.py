@@ -3,12 +3,13 @@ import pathlib
 import requests
 import datetime
 import re
-import uuid         # NEW
-import threading    # NEW
-import base64       # NEW
-import tempfile     # NEW
-import shutil       # NEW
+import uuid
+import threading
+import base64
+import tempfile
+import shutil
 
+import pandas as pd
 import pdf2image
 import pytesseract
 from flask import Flask, jsonify, render_template, request
@@ -25,7 +26,6 @@ app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
 app.config["MAX_CONTENT_LENGTH"] = 10 * 1024 * 1024
 app.config["SUPPORTED_FORMATS"] = ["png", "jpeg", "jpg", "bmp", "pnm", "gif", "tiff", "webp", "pdf"]
 
-# NEW: Global job storage and status constants
 OCR_JOBS = {}
 JOB_STATUS = {
     "PENDING": "pending",
@@ -34,12 +34,10 @@ JOB_STATUS = {
     "FAILED": "failed"
 }
 
-# Ensure the UPLOAD_FOLDER exists
 os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
 
 
 def get_tesseract_version_string() -> str:
-    """Determines the Tesseract version string."""
     try:
         return str(pytesseract.get_tesseract_version())
     except pytesseract.TesseractNotFoundError:
@@ -52,18 +50,51 @@ def pdf_to_img(pdf_file):
     return pdf2image.convert_from_path(pdf_file)
 
 
+# NEW: Helper to get text and bounding box data
+def _get_ocr_data(image: Image, language: str):
+    lang_code = Language.get(language).to_alpha3()
+    text = pytesseract.image_to_string(image, lang=lang_code)
+    
+    # Get bounding box data
+    data = pytesseract.image_to_data(image, lang=lang_code, output_type=pytesseract.Output.DATAFRAME)
+    
+    # Filter out empty rows and format as a list of dicts
+    # Keeping only relevant columns: level, text, conf, left, top, width, height
+    ocr_data = data.dropna(subset=['text']) # Drop rows where text is NaN (no word found)
+    ocr_data = ocr_data[ocr_data['text'].str.strip() != ''] # Drop rows where text is empty/whitespace
+    
+    # Ensure all required columns are present, fill with default if not (shouldn't happen with image_to_data)
+    required_cols = ['level', 'page_num', 'block_num', 'par_num', 'line_num', 'word_num', 'left', 'top', 'width', 'height', 'conf', 'text']
+    for col in required_cols:
+        if col not in ocr_data.columns:
+            ocr_data[col] = None # Or appropriate default
+            
+    # Convert to list of dictionaries for JSON serialization
+    # Filter out columns that are not directly related to bounding boxes or text value
+    json_ready_data = ocr_data[['level', 'page_num', 'block_num', 'par_num', 'line_num', 'word_num', 'left', 'top', 'width', 'height', 'conf', 'text']].to_dict(orient='records')
+    
+    return {"text": text, "ocr_data": json_ready_data}
+
+
 def ocr_core(image: Image, language="en"):
-    text = pytesseract.image_to_string(image, lang=Language.get(language).to_alpha3())
-    return text
+    # This function will now be a wrapper or can be removed if _get_ocr_data is used directly
+    # For now, let's keep it to return only text for compatibility if needed.
+    # The actual data extraction will happen in _process_single_ocr_task using _get_ocr_data
+    return pytesseract.image_to_string(image, lang=Language.get(language).to_alpha3())
 
 
 def pdf_to_text(pdf_file_path: str, language="en") -> str:
-    texts = []
+    # This function now needs to return a list of {"text": ..., "ocr_data": ...} per page
+    all_page_results = []
     images = pdf_to_img(pdf_file_path)
     for _pg, img in enumerate(images):
-        texts.append(ocr_core(img, language))
-
-    return "\n".join(texts)
+        page_ocr_results = _get_ocr_data(img, language)
+        all_page_results.append({
+            "page_num": _pg + 1,
+            "text": page_ocr_results["text"],
+            "ocr_data": page_ocr_results["ocr_data"]
+        })
+    return all_page_results # Returns a list of dictionaries per page
 
 
 def get_languages() -> dict:
@@ -80,10 +111,12 @@ def get_languages() -> dict:
 def _process_single_ocr_task(file_input: dict, job_id: str = None) -> dict:
     result = {
         "text": None,
+        "ocr_data": [], # NEW: To store structured OCR data (bounding boxes)
         "error": None,
         "filename": file_input.get("filename", "unknown_file"),
-        "source": file_input.get("url", "base64_data"), # Will be updated if filepath is used directly
+        "source": file_input.get("url", "base64_data"),
         "language": file_input.get("language", "en"),
+        "image_base64": None # NEW: To store image as base64 for frontend visualization
     }
     temp_filepath = None
     start_time = datetime.datetime.now()
@@ -140,9 +173,28 @@ def _process_single_ocr_task(file_input: dict, job_id: str = None) -> dict:
             raise ValueError("File format not supported")
 
         if file_extension == "pdf":
-            result["text"] = pdf_to_text(temp_filepath, language)
+            # pdf_to_text now returns list of dicts per page
+            page_results = pdf_to_text(temp_filepath, language) 
+            full_text = []
+            all_ocr_data = []
+            for page_res in page_results:
+                full_text.append(page_res["text"])
+                all_ocr_data.append({"page_num": page_res["page_num"], "ocr_data": page_res["ocr_data"]})
+            result["text"] = "\n".join(full_text)
+            result["ocr_data"] = all_ocr_data
+            # For PDF, we won't embed the full PDF as base64 in the result currently due to size
+            # The frontend should rely on the <embed> tag for PDF display
+            
         else:
-            result["text"] = ocr_core(Image.open(temp_filepath), language)
+            image_obj = Image.open(temp_filepath)
+            image_ocr_results = _get_ocr_data(image_obj, language)
+            result["text"] = image_ocr_results["text"]
+            result["ocr_data"] = [{"page_num": 1, "ocr_data": image_ocr_results["ocr_data"]}] # Wrap in list for consistency
+
+            # Convert image to base64 for frontend display
+            with open(temp_filepath, "rb") as image_file:
+                encoded_image = base64.b64encode(image_file.read()).decode('utf-8')
+                result["image_base64"] = f"data:image/{file_extension};base64,{encoded_image}"
 
     except pytesseract.TesseractNotFoundError:
         result["error"] = "Tesseract is not installed or not found in PATH."
@@ -201,7 +253,7 @@ def listSupportedLanguages():
 
 @app.route("/api/ocr", methods=["POST"])
 def ocr():
-    start_time_overall = datetime.datetime.now() # Renamed to avoid conflict
+    start_time_overall = datetime.datetime.now()
     file_input_obj = request.files["file"]
     language = request.form.get("language", default="en")
     
@@ -213,30 +265,20 @@ def ocr():
         if file_extension not in app.config["SUPPORTED_FORMATS"]:
             raise ValueError("File format not supported")
 
-        # Save uploaded FileStorage to a temporary file for processing
         with tempfile.NamedTemporaryFile(delete=False, suffix=f".{file_extension}", dir=app.config["UPLOAD_FOLDER"]) as temp_file:
             file_input_obj.save(temp_file.name)
             temp_filepath = temp_file.name
         
-        # Prepare input for _process_single_ocr_task
         processed_file_input = {
             "filepath": temp_filepath,
             "filename": filename,
             "language": language
         }
         
-        single_result = _process_single_ocr_task(processed_file_input) # Use the unified helper
+        single_result = _process_single_ocr_task(processed_file_input)
         
-        response_data = {
-            "text": single_result["text"],
-            "error": single_result["error"],
-            "tesseract_version": single_result["tesseract_version"],
-            "start_time": single_result["start_time"],
-            "end_time": single_result["end_time"],
-            "duration": single_result["duration"]
-        }
         status_code = 200 if not single_result["error"] else 400
-        return jsonify(response_data), status_code
+        return jsonify(single_result), status_code
     except ValueError as e:
         end_time_overall = datetime.datetime.now()
         duration_overall = (end_time_overall - start_time_overall).total_seconds() * 1000
@@ -264,14 +306,15 @@ def ocr():
 
 @app.route("/api/v2/ocr", methods=["POST"])
 def ocr_v2():
-    start_time_overall = datetime.datetime.now() # Renamed to avoid conflict
+    start_time_overall = datetime.datetime.now()
     if not request.json or 'url' not in request.json:
         end_time_overall = datetime.datetime.now()
         duration_overall = (end_time_overall - start_time_overall).total_seconds() * 1000
         return jsonify(error="URL is required", tesseract_version=get_tesseract_version_string(),
                        start_time=start_time_overall.isoformat(),
                        end_time=end_time_overall.isoformat(),
-                       duration=f"{duration_overall:.2f}ms"), 400
+                       duration=f"{duration_overall:.2f}ms"
+        ), 400
     
     file_input = {
         "url": request.json['url'],
@@ -279,18 +322,9 @@ def ocr_v2():
     }
 
     try:
-        single_result = _process_single_ocr_task(file_input) # Use the unified helper
-        response_data = {
-            "url": single_result["source"],
-            "text": single_result["text"],
-            "error": single_result["error"],
-            "tesseract_version": single_result["tesseract_version"],
-            "start_time": single_result["start_time"],
-            "end_time": single_result["end_time"],
-            "duration": single_result["duration"]
-        }
+        single_result = _process_single_ocr_task(file_input)
         status_code = 200 if not single_result["error"] else 400
-        return jsonify(response_data), status_code
+        return jsonify(single_result), status_code
 
     except ValueError as e:
         end_time_overall = datetime.datetime.now()
@@ -352,6 +386,26 @@ def ocr_status(job_id):
         return jsonify(job_data), 200
     return jsonify({"status": "not_found", "message": f"Job {job_id} not found."}), 404
 
+
+@app.errorhandler(400)
+def bad_request(error):
+    response = jsonify({
+        "error": "Bad Request",
+        "message": error.description,
+        "tesseract_version": get_tesseract_version_string()
+    })
+    response.status_code = 400
+    return response
+
+@app.errorhandler(500)
+def internal_server_error(error):
+    response = jsonify({
+        "error": "Internal Server Error",
+        "message": "An unexpected server error occurred.",
+        "tesseract_version": get_tesseract_version_string()
+    })
+    response.status_code = 500
+    return response
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))

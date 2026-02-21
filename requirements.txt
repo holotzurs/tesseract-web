@@ -65,6 +65,8 @@ markupsafe==2.1.2
     #   werkzeug
 mypy-extensions==1.0.0
     # via black
+numpy==2.4.2
+    # via pandas
 packaging==23.0
     # via
     #   black
@@ -73,6 +75,8 @@ packaging==23.0
     #   pytesseract
     #   pytest
     #   tox
+pandas==3.0.1
+    # via ocr-web (pyproject.toml)
 pathspec==0.11.2
     # via black
 pdf2image==1.16.2
@@ -106,10 +110,14 @@ pytest==7.4.4
     #   pytest-cov
 pytest-cov==7.0.0
     # via ocr-web (pyproject.toml)
+python-dateutil==2.9.0.post0
+    # via pandas
 requests==2.31.0
     # via ocr-web (pyproject.toml)
 ruff==0.0.284
     # via ocr-web (pyproject.toml)
+six==1.17.0
+    # via python-dateutil
 tox==4.4.12
     # via ocr-web (pyproject.toml)
 urllib3==2.0.7
