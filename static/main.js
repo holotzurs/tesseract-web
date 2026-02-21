@@ -229,13 +229,9 @@ async function pollJobStatus(jobId) {
                         ocrImg.classList.remove('hidden');
                         ocrCanvas.classList.add('hidden');
                         ocrPdf.classList.add('hidden');
-                    } else if (firstResult.source && firstResult.source.endsWith(".pdf")) {
-                         // Use the original blob from state.file if it matches the filename, otherwise use source URL
-                        if (state.file && state.file.name === firstResult.filename) {
-                            ocrPdf.src = URL.createObjectURL(state.file);
-                        } else {
-                            ocrPdf.src = firstResult.source.startsWith("filepath://") ? firstResult.source.replace("filepath://", "/static/uploads/") : firstResult.source;
-                        }
+                    } else if (firstResult.source && (firstResult.source.endsWith(".pdf") || firstResult.filename && firstResult.filename.endsWith(".pdf"))) {
+                        // Use the server-provided source URL for PDFs, ensuring correct display
+                        ocrPdf.src = firstResult.source.startsWith("filepath://") ? firstResult.source.replace("filepath://", "/static/uploads/") : firstResult.source;
                         ocrPdf.classList.remove('hidden');
                         ocrImg.classList.add('hidden');
                         ocrCanvas.classList.add('hidden');
@@ -289,12 +285,8 @@ function displayJob(jobId, jobData, jobIndex) {
                     ocrCanvas.classList.add('hidden');
                     ocrPdf.classList.add('hidden');
                 } else if (firstResult.source && (firstResult.source.endsWith(".pdf") || firstResult.filename && firstResult.filename.endsWith(".pdf"))) {
-                    // Try to use original blob if filename matches, otherwise source URL
-                    if (state.file && state.file.name === firstResult.filename) {
-                        ocrPdf.src = URL.createObjectURL(state.file);
-                    } else {
-                        ocrPdf.src = firstResult.source.startsWith("filepath://") ? firstResult.source.replace("filepath://", "/static/uploads/") : firstResult.source;
-                    }
+                    // Use the server-provided source URL for PDFs
+                    ocrPdf.src = firstResult.source.startsWith("filepath://") ? firstResult.source.replace("filepath://", "/static/uploads/") : firstResult.source;
                     ocrPdf.classList.remove('hidden');
                     ocrImg.classList.add('hidden');
                     ocrCanvas.classList.add('hidden');

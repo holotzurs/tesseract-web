@@ -182,8 +182,13 @@ def _process_single_ocr_task(file_input: dict, job_id: str = None) -> dict:
                 all_ocr_data.append({"page_num": page_res["page_num"], "ocr_data": page_res["ocr_data"]})
             result["text"] = "\n".join(full_text)
             result["ocr_data"] = all_ocr_data
-            # For PDF, we won't embed the full PDF as base64 in the result currently due to size
-            # The frontend should rely on the <embed> tag for PDF display
+            
+            # For PDF, move the temporary file to a permanent name in static/uploads for frontend display
+            # We use a unique prefix to avoid collisions
+            unique_filename = f"ocr_{uuid.uuid4().hex}_{result['filename']}"
+            permanent_filepath = os.path.join(app.config["UPLOAD_FOLDER"], unique_filename)
+            shutil.copy(temp_filepath, permanent_filepath)
+            result["source"] = f"/static/uploads/{unique_filename}"
             
         else:
             image_obj = Image.open(temp_filepath)
