@@ -162,7 +162,8 @@ select.languages {
 }
 #ocr-pdf {
     width: 100%;
-    height: calc(100% - 15px); /* Leave room for resizer */
+    height: calc(100% - 15px); /* Leave room for resizer bar */
+    min-height: 685px; /* Added to ensure it's not too small initially (700-15) */
     display: block;
 }
 #ocr-canvas {
