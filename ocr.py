@@ -21,6 +21,7 @@ __author__ = "Santhosh Thottingal <santhosh.thottingal@gmail.com>"
 __source__ = "https://github.com/santhoshtr/tesseract-web"
 
 app = Flask(__name__)
+app.config["JSON_SORT_KEYS"] = False
 UPLOAD_FOLDER = "./static/uploads"
 app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
 app.config["MAX_CONTENT_LENGTH"] = 10 * 1024 * 1024
@@ -110,13 +111,13 @@ def get_languages() -> dict:
 # NEW: Helper function to process a single OCR task (used by both sync and async)
 def _process_single_ocr_task(file_input: dict, job_id: str = None) -> dict:
     result = {
-        "text": None,
-        "ocr_data": [], # NEW: To store structured OCR data (bounding boxes)
-        "error": None,
         "filename": file_input.get("filename", "unknown_file"),
         "source": file_input.get("url", "base64_data"),
         "language": file_input.get("language", "en"),
-        "image_base64": None # NEW: To store image as base64 for frontend visualization
+        "text": None,
+        "error": None,
+        "image_base64": None,
+        "ocr_data": [] # Moved to end
     }
     temp_filepath = None
     start_time = datetime.datetime.now()
@@ -285,13 +286,16 @@ def ocr():
         end_time_overall = datetime.datetime.now()
         duration_overall = (end_time_overall - start_time_overall).total_seconds() * 1000
         
-        # Ensure timing fields are in the result for consistency
-        single_result["start_time"] = start_time_overall.isoformat()
-        single_result["end_time"] = end_time_overall.isoformat()
-        single_result["duration"] = f"{duration_overall:.2f}ms"
+        # Ensure timing fields are in the result for consistency, at the top
+        response_payload = {
+            "start_time": start_time_overall.isoformat(),
+            "end_time": end_time_overall.isoformat(),
+            "duration": f"{duration_overall:.2f}ms",
+            **single_result
+        }
         
         status_code = 200 if not single_result["error"] else 400
-        return jsonify(single_result), status_code
+        return jsonify(response_payload), status_code
     except ValueError as e:
         end_time_overall = datetime.datetime.now()
         duration_overall = (end_time_overall - start_time_overall).total_seconds() * 1000
