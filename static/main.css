@@ -19,7 +19,7 @@ body {
 }
 
 header {
-  background-color: var(--header-background-color);
+  background-color: var(--ep-blue);
   border-bottom: 4px solid var(--ep-light-blue);
   padding: 10px 20px;
   display: flex;
@@ -37,9 +37,12 @@ header .logo {
     height: 50px;
 }
 header .title {
-  color: var(--ep-blue);
+  color: white; /* Changed from var(--ep-blue) to white */
   font-size: 1.5rem;
   margin: 0;
+}
+header nav a {
+    color: white !important; /* Ensure nav links are white */
 }
 
 main {
