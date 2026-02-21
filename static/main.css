@@ -1,61 +1,28 @@
 :root {
-  --primary-color-h: 192;
-  --primary-color-s: 100%;
-  --primary-color-l: 41%;
-  --primary-color: hsl(
-    var(--primary-color-h),
-    var(--primary-color-s),
-    var(--primary-color-l)
-  );
-  --primary-color--dark: hsl(
-    var(--primary-color-h),
-    var(--primary-color-s),
-    calc(var(--primary-color-l) - 30%)
-  );
-  --background-color: #424242;
-  --text-color: #fafafa;
-  --border-color: #bdbdbd;
-  --header-background-color: #212121;
-  --button-color: #212121;
-
-  /* EP theme colors from inline style (integrated) */
   --ep-blue: #1e3868;
   --ep-light-blue: #3fa9f5;
-  --ep-bg: #f4f6f9; /* Background for light theme, currently always used */
+  --ep-bg: #f4f6f9;
+  --text-color-dark: #333;
+  --border-color: #e0e0e0;
+  --header-background-color: #ffffff;
+  --button-color: #f0f0f0;
 }
 
 body {
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  margin: auto;
+  margin: 0;
   background-color: var(--ep-bg);
-  color: var(--text-color); /* Fallback, should be overridden by specific rules */
-  display: grid;
-  grid-template-columns: 1fr;
-  grid-template-rows: auto 1fr auto;
-  grid-template-areas:
-    "header"
-    "main"
-    "footer";
+  color: var(--text-color-dark);
+  display: flex;
+  flex-direction: column;
   min-height: 100vh;
 }
 
-main {
-  grid-area: main;
-  display: grid;
-  grid-gap: 1vh;
-  grid-template-columns: 1fr;
-  align-content: start;
-  margin: 0;
-  padding: 1% 5%;
-  min-height: 30vh;
-}
-
 header {
-  grid-area: header;
-  background-color: #ffffff;
+  background-color: var(--header-background-color);
   border-bottom: 4px solid var(--ep-light-blue);
   padding: 10px 20px;
-  display: flex; /* Prioritizing flex for header content layout */
+  display: flex;
   align-items: center;
   justify-content: space-between;
   box-shadow: 0 2px 4px rgba(0,0,0,0.1);
@@ -75,317 +42,210 @@ header .title {
   margin: 0;
 }
 
+main {
+  flex-grow: 1;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center; /* Center content horizontally */
+  gap: 20px; /* Space between sections */
+}
+
+section {
+    width: 100%;
+    max-width: 900px; /* Max width for content */
+    background-color: #ffffff;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+/* Controls Area */
+.controls-area {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    align-items: center;
+}
+.controls-area p {
+    margin: 0;
+    color: var(--text-color-dark);
+}
+.controls-area input[type="file"] {
+    width: 100%;
+    max-width: 300px;
+    padding: 10px;
+    border: 1px solid var(--border-color);
+    border-radius: 5px;
+}
+.button-group {
+    display: flex;
+    gap: 10px;
+}
+button.submit {
+  padding: 10px 20px;
+  font-size: 1em;
+  color: white;
+  background-color: var(--ep-blue);
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+button.submit:hover {
+  background-color: var(--ep-light-blue);
+}
+select.languages {
+  padding: 8px 10px;
+  font-size: 1em;
+  border: 1px solid var(--border-color);
+  border-radius: 5px;
+  background-color: #f8f8f8;
+  color: var(--text-color-dark);
+  width: 100%;
+  max-width: 300px;
+}
+
+
+/* Display Area */
+.display-area {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    min-height: 300px; /* Ensure display area has some height */
+}
+#file-display-container {
+    position: relative;
+    width: 100%;
+    min-height: 250px; /* Minimum height for visual content */
+    background-color: #f0f0f0;
+    border: 1px dashed var(--border-color);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden; /* Important to prevent scrollbars */
+    flex-grow: 1; /* Allow it to grow in flex container */
+}
+#ocr-img, #ocr-pdf, #ocr-canvas {
+    max-width: 100%;
+    max-height: 100%;
+    width: auto; /* Allow natural sizing */
+    height: auto; /* Allow natural sizing */
+    object-fit: contain; /* Scale down to fit */
+    display: block; /* Ensure it respects width/height */
+}
+#ocr-canvas {
+    position: absolute; /* Needed for overlaying on img if visual OCR is re-implemented */
+    top: 0;
+    left: 0;
+}
+.resulttext {
+  width: 100%;
+  min-height: 150px;
+  padding: 10px;
+  border: 1px solid var(--border-color);
+  border-radius: 5px;
+  font-family: monospace;
+  resize: vertical; /* Allow vertical resizing */
+  box-sizing: border-box; /* Include padding in width */
+}
+
+/* Job Dashboard */
+#job-dashboard {
+    /* Styles are already relatively simple, just adjust padding/margins if needed */
+}
+.job-grid-row {
+    display: grid;
+    grid-template-columns: 0.5fr 1fr 2fr 1fr 1fr 1fr;
+    gap: 10px;
+    padding: 8px;
+    align-items: center;
+    border-bottom: 1px solid var(--border-color);
+}
+#job-list-header {
+    font-weight: bold;
+    background-color: var(--ep-blue);
+    color: white;
+    border-radius: 5px;
+}
+.job-entry {
+    cursor: pointer;
+}
+.job-entry:hover {
+    background-color: rgba(0,0,0,0.05);
+}
+.job-status {
+    font-weight: bold;
+}
+.status-completed { color: green; }
+.status-failed { color: red; }
+.status-pending { color: orange; }
+.status-in_progress { color: blue; } /* Simplified, no flashing for now */
+.no-jobs-message {
+    text-align: center;
+    color: #666;
+    margin: 10px 0;
+}
+
+
 footer {
-  grid-area: footer;
   background-color: var(--ep-blue);
   color: white;
   padding: 20px;
   text-align: center;
   margin-top: auto;
   border-top: 1px solid var(--border-color);
-  display: grid;
-  grid-template-columns: 1fr;
 }
 footer a {
     color: var(--ep-light-blue);
     text-decoration: none;
 }
 
-a {
-  cursor: pointer;
-  color: var(--text-color); /* Default link color */
-  border-bottom: 1px solid var(--border-color);
-  text-decoration: none;
-}
-
-.container {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  min-height: auto !important; /* Fixed: Removed global 40vh limit */
-  column-gap: 1ch;
-}
-
-.drop, .result {
-  display: grid;
-  grid-template-columns: 1fr;
-  align-items: start;
-  align-content: start;
-  justify-content: center;
-  transition: background-color 0.2s ease-in-out;
-  padding: 4px;
-  border: 1px solid var(--border-color);
-  border-radius: 2px;
-  overflow: auto;
-}
-
-.drop {
-  grid-template-rows: 1fr 1fr 1fr 9fr;
-  color: var(--ep-blue) !important; /* Fixed: Dark Blue for text in drop area */
-  font-weight: bold;
-}
-
-.result {
-  grid-template-rows: 1fr;
-}
-
-.resulttext {
-  height: 90%;
-}
-
+/* Helper classes */
 .hidden {
-  display: none;
+  display: none !important;
 }
 
-img,
-embed {
-  display: block;
-  width: 100%;
-  max-height: 80vh;
-  height: auto;
-  object-fit: contain;
-}
-
-/* Fixed: ocr-pdf and ocr-img sizing */
-#ocr-pdf {
-  width: 100%;
-  height: 85vh; /* Uses 85% of the screen height to prevent odd scrolling */
-  border: 1px solid var(--border-color);
-  display: block;
-}
-
-#ocr-img {
-  height: 85vh;
-  object-fit: contain;
-}
-
-
-button.submit {
-  cursor: pointer;
-  border: 1px solid var(--border-color);
-  border-radius: 2px;
-  width: 25vw;
-  padding: 8px;
-}
-
-button.submit:hover {
-  opacity: 0.8;
-  font-weight: bold;
-}
-
-select.languages {
-  padding: 8px 0;
-  font-size: 1.2em;
-  background: var(--background-color);
-  color: var(--text-color);
-  border: none;
-  border-bottom: 1px solid var(--border-color);
-  outline: none;
-  background-color: white !important; /* Fixed: Visible on light bg */
-  color: #333 !important; /* Fixed: Dark text for dropdown */
-}
-
-input,
-textarea,
-button {
-  font-size: 1.25em;
-  min-width: 0;
-  border: none;
-  outline: none;
-  background-color: var(--background-color);
-  color: var(--text-color);
-  font-family: sans-serif;
-}
-
-.action {
-  padding: 8px 0;
-  display: grid;
-  grid-template-columns: 1fr;
-  justify-items: center;
-}
-
-/* Clean, left-aligned timing list */
-#timing-info {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  color: var(--ep-blue);
-  min-height: auto;
-  margin: 10px 0;
-  padding: 10px;
-  border-left: 4px solid var(--ep-light-blue);
-  background: rgba(255, 255, 255, 0.5);
-}
-
-#timing-info p {
-  margin: 2px 0;
-  font-size: 0.9em;
-  font-weight: bold;
-}
-
-#timing-info span {
-  font-weight: normal;
-  color: #333;
-  margin-left: 5px;
-}
-
-
-/* Styling for job dashboard */
-#job-dashboard {
-    text-align: left; /* Align contents to the left (NEW) */
-    font-size: 0.9em; /* Slightly smaller base font for the dashboard */
-    padding: 10px 5%; /* Adjusted padding to match main content */
-    margin-top: 10px; /* Spacing from previous section */
-    width: 100%; /* Ensure it fills available width */
-    box-sizing: border-box; /* Include padding in width calculation */
-}
-
-#job-dashboard-title { /* NEW: Style for the H2 title */
-    color: var(--ep-blue); /* Dark blue color */
-    margin-bottom: 10px;
-}
-
-/* Base style for grid rows */
-.job-grid-row {
-    display: grid;
-    /* NEW: Define columns: No. ID Filename Progress Status Duration */
-    grid-template-columns: 0.5fr 1fr 2fr 1fr 1fr 1fr;
-    gap: 5px; /* Gap between cells */
-    padding: 5px;
-    align-items: center;
-    border-bottom: 1px solid var(--border-color);
-}
-
-#job-list-header { /* Styling for the header row */
-    font-weight: bold;
-    background-color: var(--header-background-color);
-    color: var(--text-color);
-    border-top-left-radius: 5px;
-    border-top-right-radius: 5px;
-    padding: 10px 5px; /* Slightly more padding for header */
-}
-
-/* Style for individual column headers */
-.job-col-header {
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    text-align: left;
-}
-
-#job-list { /* Container for job entries (now a div) */
-    list-style: none; /* Keep none if we manually number, or remove if not <ol> */
-    padding: 0;
-    margin: 0;
-    border: 1px solid var(--border-color); /* Add border around the list container */
-    border-radius: 5px;
-    background-color: var(--background-color);
-    margin-top: 5px; /* Spacing from header */
-}
-
-.job-entry { /* This is now a <div> for each job */
-    /* Inherits grid-template-columns from .job-grid-row */
-    /* text-align: left is set on job-col-header, let's keep it here too */
-    cursor: pointer; /* Indicate clickable */
-}
-
-.job-entry:hover {
-    background-color: rgba(0, 0, 0, 0.1); /* Subtle hover effect */
-}
-
-/* Zebra striping for readability */
-#job-list .job-entry:nth-child(odd) {
-    background-color: rgba(255, 255, 255, 0.05);
-}
-#job-list .job-entry:nth-child(even) {
-    background-color: rgba(0, 0, 0, 0.05);
-}
-
-.job-entry > span { /* Styling for individual cells */
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    text-align: left;
-    padding: 5px; /* Match header padding */
-}
-
-
-.job-status {
-    font-weight: bold;
-    color: black; /* Default text color for status */
-    padding: 2px 5px; /* Add some padding to status indicator */
-    border-radius: 3px;
-    text-align: center;
-}
-
-/* NEW: Flashing animations */
-@keyframes flashing-green {
-    0%, 100% { background-color: transparent; color: limegreen; } /* Text color changes too */
-    50% { background-color: limegreen; color: black; }
-}
-
-@keyframes flashing-red {
-    0%, 100% { background-color: transparent; color: red; }
-    50% { background-color: red; color: white; }
-}
-
-@keyframes flashing-blue {
-    0%, 100% { background-color: transparent; color: dodgerblue; }
-    50% { background-color: dodgerblue; color: white; }
-}
-
-.job-status.status-pending { 
-    color: orange; /* Text color for pending */
-}
-
-.job-status.status-in_progress {
-    animation: flashing-green 1.5s infinite alternate; /* Flashing green */
-}
-.job-status.status-completed {
-    background-color: dodgerblue; /* Blue when done */
-    color: white; /* White text for blue background */
-}
-.job-status.status-failed {
-    background-color: red; /* Red when failed */
-    color: white; /* White text for red background */
-}
-.job-error {
-    color: red;
-    font-weight: bold;
-}
-.job-results {
-    list-style: none;
-    padding-left: 0;
-}
-.job-results li {
-    margin-bottom: 5px;
-    border-bottom: 1px dashed var(--border-color);
-    padding-bottom: 5px;
-}
-
-/* Remove this if not used or override with flashing */
-/* @keyframes pulse {
-    0% { transform: scale(1); opacity: 1; }
-    100% { transform: scale(1.05); opacity: 0.7; }
-} */
-
-
-@media (max-width: 450px) {
-  .container {
-    grid-template-columns: 1fr;
-  }
-
-  .action {
-    grid-template-columns: 1fr;
+@media (max-width: 768px) {
+  .button-group {
+    flex-direction: column;
   }
 }
 
-
-@media screen and (prefers-color-scheme: light) {
+@media screen and (prefers-color-scheme: dark) {
   :root {
-    --background-color: #fafafa;
-    --text-color: #424242;
-    --border-color: #e0e0e0;
-    --header-background-color: #eeeeee;
-    --button-color: #eeeeee;
+    --ep-bg: #212121;
+    --text-color-dark: #f0f0f0;
+    --border-color: #424242;
+    --header-background-color: #1a1a1a;
+    --button-color: #333;
+  }
+  main section {
+    background-color: #303030;
+    color: var(--text-color-dark);
+  }
+  select.languages {
+    background-color: #424242;
+    color: var(--text-color-dark);
+    border-color: #666;
+  }
+  .resulttext {
+    background-color: #424242;
+    color: var(--text-color-dark);
+    border-color: #666;
+  }
+  #file-display-container {
+    background-color: #333;
+    border-color: #666;
+  }
+  #job-list-header {
+      background-color: var(--ep-blue); /* Can be adjusted for dark theme if needed */
+  }
+  #job-list .job-entry:nth-child(odd) {
+      background-color: rgba(255, 255, 255, 0.05);
+  }
+  #job-list .job-entry:nth-child(even) {
+      background-color: rgba(0, 0, 0, 0.1);
   }
 }
