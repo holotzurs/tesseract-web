@@ -59,22 +59,26 @@ def _get_ocr_data(image: Image, language: str):
     # Get bounding box data
     data = pytesseract.image_to_data(image, lang=lang_code, output_type=pytesseract.Output.DATAFRAME)
     
-    # Filter out empty rows and format as a list of dicts
-    # Keeping only relevant columns: level, text, conf, left, top, width, height
-    ocr_data = data.dropna(subset=['text']) # Drop rows where text is NaN (no word found)
-    ocr_data = ocr_data[ocr_data['text'].str.strip() != ''] # Drop rows where text is empty/whitespace
+    # Get image dimensions for frontend scaling
+    width, height = image.size
     
-    # Ensure all required columns are present, fill with default if not (shouldn't happen with image_to_data)
+    # Filter out empty rows and format as a list of dicts
+    ocr_data = data.dropna(subset=['text']) 
+    ocr_data = ocr_data[ocr_data['text'].str.strip() != ''] 
+    
     required_cols = ['level', 'page_num', 'block_num', 'par_num', 'line_num', 'word_num', 'left', 'top', 'width', 'height', 'conf', 'text']
     for col in required_cols:
         if col not in ocr_data.columns:
-            ocr_data[col] = None # Or appropriate default
+            ocr_data[col] = None
             
-    # Convert to list of dictionaries for JSON serialization
-    # Filter out columns that are not directly related to bounding boxes or text value
-    json_ready_data = ocr_data[['level', 'page_num', 'block_num', 'par_num', 'line_num', 'word_num', 'left', 'top', 'width', 'height', 'conf', 'text']].to_dict(orient='records')
+    json_ready_data = ocr_data[required_cols].to_dict(orient='records')
     
-    return {"text": text, "ocr_data": json_ready_data}
+    return {
+        "text": text, 
+        "ocr_data": json_ready_data,
+        "image_width": width,
+        "image_height": height
+    }
 
 
 def ocr_core(image: Image, language="en"):
@@ -93,7 +97,9 @@ def pdf_to_text(pdf_file_path: str, language="en") -> str:
         all_page_results.append({
             "page_num": _pg + 1,
             "text": page_ocr_results["text"],
-            "ocr_data": page_ocr_results["ocr_data"]
+            "ocr_data": page_ocr_results["ocr_data"],
+            "image_width": page_ocr_results["image_width"],
+            "image_height": page_ocr_results["image_height"]
         })
     return all_page_results # Returns a list of dictionaries per page
 
@@ -180,7 +186,12 @@ def _process_single_ocr_task(file_input: dict, job_id: str = None) -> dict:
             all_ocr_data = []
             for page_res in page_results:
                 full_text.append(page_res["text"])
-                all_ocr_data.append({"page_num": page_res["page_num"], "ocr_data": page_res["ocr_data"]})
+                all_ocr_data.append({
+                    "page_num": page_res["page_num"], 
+                    "ocr_data": page_res["ocr_data"],
+                    "image_width": page_res["image_width"],
+                    "image_height": page_res["image_height"]
+                })
             result["text"] = "\n".join(full_text)
             result["ocr_data"] = all_ocr_data
             
@@ -195,7 +206,12 @@ def _process_single_ocr_task(file_input: dict, job_id: str = None) -> dict:
             image_obj = Image.open(temp_filepath)
             image_ocr_results = _get_ocr_data(image_obj, language)
             result["text"] = image_ocr_results["text"]
-            result["ocr_data"] = [{"page_num": 1, "ocr_data": image_ocr_results["ocr_data"]}] # Wrap in list for consistency
+            result["ocr_data"] = [{
+                "page_num": 1, 
+                "ocr_data": image_ocr_results["ocr_data"],
+                "image_width": image_ocr_results["image_width"],
+                "image_height": image_ocr_results["image_height"]
+            }] # Wrap in list for consistency
 
             # Convert image to base64 for frontend display
             with open(temp_filepath, "rb") as image_file:

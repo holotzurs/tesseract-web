@@ -118,6 +118,28 @@ select.languages {
     gap: 15px;
     min-height: 300px; /* Ensure display area has some height */
 }
+#pdf-controls {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 20px;
+    padding: 10px;
+    background-color: var(--ep-bg);
+    border-radius: 5px;
+    border: 1px solid var(--border-color);
+}
+#pdf-controls button {
+    padding: 5px 15px;
+    cursor: pointer;
+    background-color: var(--ep-blue);
+    color: white;
+    border: none;
+    border-radius: 3px;
+}
+#pdf-controls button:disabled {
+    background-color: #ccc;
+    cursor: not-allowed;
+}
 #file-display-container {
     position: relative;
     width: 100%;

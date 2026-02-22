@@ -12,6 +12,12 @@
         <meta description="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
         <link href="{{ url_for('static', filename='main.css') }}" rel="stylesheet">
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+        <script>
+            // Initialize PDF.js
+            var pdfjsLib = window['pdfjs-dist/build/pdf'];
+            pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+        </script>
         </head>
 
     <body>
@@ -53,6 +59,11 @@
             </section>
 
             <section class="display-area">
+                <div id="pdf-controls" class="hidden">
+                    <button onclick="prevPage()">Previous</button>
+                    <span>Page: <span id="page-num"></span> / <span id="page-count"></span></span>
+                    <button onclick="nextPage()">Next</button>
+                </div>
                 <div id="file-display-container">
                     <embed class="hidden" id="ocr-pdf"/>
                     <img class="hidden" id="ocr-img" />
