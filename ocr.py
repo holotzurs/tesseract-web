@@ -262,6 +262,7 @@ def ocr():
     start_time_overall = datetime.datetime.now()
     file_input_obj = request.files["file"]
     language = request.form.get("language", default="en")
+    job_id = request.form.get("job_id") # Get client-provided job_id if any
     
     temp_filepath = None
     try:
@@ -288,6 +289,7 @@ def ocr():
         
         # Ensure timing fields are in the result for consistency, at the top
         response_payload = {
+            "job_id": job_id, # Include back the job_id
             "start_time": start_time_overall.isoformat(),
             "end_time": end_time_overall.isoformat(),
             "duration": f"{duration_overall:.2f}ms",
@@ -378,7 +380,7 @@ def async_ocr():
         "job_id": job_id,
         "status": JOB_STATUS["PENDING"],
         "results": [],
-        "overall_start_time": None,
+        "overall_start_time": datetime.datetime.now().isoformat(), # Set immediately
         "overall_end_time": None,
         "overall_duration": None,
         "error": None

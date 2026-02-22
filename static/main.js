@@ -151,6 +151,7 @@ document.onpaste = (event) => {
 let activeJobs = {}; // Stores job_id -> job_data for easy access
 const POLL_INTERVAL = 1000; // Poll server every 1 second
 let pollingIntervalId = null; // To store setInterval ID for server polling
+let dashboardIntervals = {}; // NEW: Store intervals for live dashboard duration updates
 
 function startPolling() {
     if (!pollingIntervalId) {
@@ -168,7 +169,6 @@ function stopPolling() {
 
 function updateJobDashboard() {
     const jobListEl = document.querySelector("#job-list");
-    // Ensure dashboard is visible, it's no longer 'hidden' by default in HTML
     document.querySelector("#job-dashboard").classList.remove('hidden'); 
 
     let hasActivePollingJobs = false;
@@ -178,11 +178,15 @@ function updateJobDashboard() {
         return timeA - timeB;
     });
 
-    jobListEl.innerHTML = ""; 
-
     if (sortedJobIds.length === 0) {
-        jobListEl.innerHTML = "<p class='no-jobs-message'>No active jobs yet.</p>";
+        if (!jobListEl.querySelector(".no-jobs-message")) {
+            jobListEl.innerHTML = "<p class='no-jobs-message'>No active jobs yet.</p>";
+        }
     } else {
+        // Remove "No active jobs yet" if it exists
+        const noJobsMsg = jobListEl.querySelector(".no-jobs-message");
+        if (noJobsMsg) noJobsMsg.remove();
+
         sortedJobIds.forEach((jobId, index) => {
             const jobData = activeJobs[jobId];
             displayJob(jobId, jobData, index + 1);
@@ -195,10 +199,10 @@ function updateJobDashboard() {
     if (!hasActivePollingJobs) {
         stopPolling();
     } else {
-        // Only poll for jobs that are actually active
+        // Only poll for jobs that are actually active AND are async
         sortedJobIds.forEach(jobId => {
             const jobData = activeJobs[jobId];
-            if (jobData.status === 'pending' || jobData.status === 'in_progress') {
+            if ((jobData.status === 'pending' || jobData.status === 'in_progress') && !jobId.startsWith('sync-')) {
                 pollJobStatus(jobId);
             }
         });
@@ -303,10 +307,12 @@ function displayJob(jobId, jobData, jobIndex) {
 
     jobEl.querySelector('.job-col-number').textContent = `${jobIndex}.`;
     jobEl.querySelector('.job-col-id').textContent = jobId.substring(0, 8);
+    
     const initialFilesPayload = jobData.files || [];
     const totalFiles = initialFilesPayload.length > 0 ? initialFilesPayload.length : (jobData.results ? jobData.results.length : 0);
     const completedFiles = jobData.results ? jobData.results.filter(res => !res.error).length : 0;
     jobEl.querySelector('.job-col-progress').textContent = `${completedFiles}/${totalFiles}`;
+    
     let mainFilename = "N/A";
     if (jobData.results && jobData.results.length > 0) {
         const firstResult = jobData.results[0];
@@ -319,14 +325,48 @@ function displayJob(jobId, jobData, jobIndex) {
     jobEl.querySelector('.job-col-filename').textContent = mainFilename;
 
     const statusSpan = jobEl.querySelector('.job-col-status');
-    statusSpan.textContent = jobData.status;
+    const durationSpan = jobEl.querySelector('.job-col-duration');
+
+    if (jobData.status === 'in_progress') {
+        if (!statusSpan.querySelector(".flashing-dot")) {
+            statusSpan.innerHTML = `<span class="flashing-dot"></span>${jobData.status}`;
+        }
+    } else {
+        statusSpan.textContent = jobData.status;
+    }
+    
     statusSpan.classList.remove('status-pending', 'status-in_progress', 'status-completed', 'status-failed');
     statusSpan.classList.add(`job-status`, `status-${jobData.status}`);
 
-    jobEl.querySelector('.job-col-duration').textContent = jobData.overall_duration || "N/A";
-
-    const noJobsP = jobListEl.querySelector("p.no-jobs-message");
-    if (noJobsP) { noJobsP.remove(); }
+    if (jobData.status === 'completed' || jobData.status === 'failed') {
+        durationSpan.textContent = jobData.overall_duration || "N/A";
+        if (dashboardIntervals[jobId]) {
+            clearInterval(dashboardIntervals[jobId]);
+            delete dashboardIntervals[jobId];
+        }
+    } else {
+        // Live update dashboard duration
+        if (!dashboardIntervals[jobId] && jobData.overall_start_time) {
+            dashboardIntervals[jobId] = setInterval(() => {
+                const job = activeJobs[jobId];
+                if (!job || job.status === 'completed' || job.status === 'failed') {
+                    if (dashboardIntervals[jobId]) {
+                        clearInterval(dashboardIntervals[jobId]);
+                        delete dashboardIntervals[jobId];
+                    }
+                    return;
+                }
+                const startTime = new Date(job.overall_start_time).getTime();
+                if (isNaN(startTime) || startTime <= 0) {
+                    durationSpan.textContent = '0.00s';
+                    return;
+                }
+                const now = Date.now();
+                const elapsed = Math.max(0, (now - startTime) / 1000).toFixed(2);
+                durationSpan.textContent = elapsed + 's';
+            }, 100);
+        }
+    }
 }
 
 // --- Job Timing Logic ---
@@ -373,9 +413,13 @@ function updateTimingInfoDisplay(jobId) {
                     timingIntervalId = null;
                     return;
                 }
-                const start = new Date(job.overall_start_time).getTime();
+                const startTime = new Date(job.overall_start_time).getTime();
+                if (isNaN(startTime) || startTime <= 0) {
+                    durationEl.textContent = '0.00s';
+                    return;
+                }
                 const now = Date.now();
-                const elapsed = ((now - start) / 1000).toFixed(2);
+                const elapsed = Math.max(0, (now - startTime) / 1000).toFixed(2);
                 durationEl.textContent = elapsed + 's';
             }
         }, 100);
@@ -401,6 +445,8 @@ function doOCR(){
     data.append('language', language);
     
     const jobId = 'sync-' + Date.now();
+    data.append('job_id', jobId); // Send job_id to server
+    
     activeJobs[jobId] = {
         job_id: jobId,
         status: 'in_progress',
