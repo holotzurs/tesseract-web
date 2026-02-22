@@ -11,6 +11,29 @@ docker run -dp 3001:80 tesseract-ocr-entrypoint:latest
 ```
 Then open `http://localhost:3001/` using your browser.
 
+## Local Development (without Docker)
+
+If you prefer to run the application locally without Docker:
+
+1.  **System Dependencies**: Ensure you have Tesseract OCR and Poppler installed on your system.
+    *   **macOS**: `brew install tesseract poppler`
+    *   **Ubuntu/Debian**: `sudo apt-get install tesseract-ocr poppler-utils`
+
+2.  **Set up Virtual Environment**:
+    ```bash
+    uv venv
+    source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+    uv pip install -r requirements.txt
+    ```
+
+3.  **Run with Flask**:
+    ```bash
+    export FLASK_APP=ocr.py
+    export FLASK_DEBUG=1
+    flask run --port 5000
+    ```
+    Then open `http://localhost:5000/` in your browser.
+
 ## API Endpoints
 
 This service provides several REST API endpoints for OCR processing. All endpoints now include the Tesseract OCR version, `start_time`, `end_time`, and `duration` in their responses.
