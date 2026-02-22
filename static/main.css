@@ -203,17 +203,20 @@ select.languages {
 }
 .job-entry {
     cursor: pointer;
+    transition: background-color 0.2s ease;
 }
 .job-entry:hover {
-    background-color: rgba(0,0,0,0.05);
+    background-color: rgba(63, 169, 245, 0.2) !important;
 }
 .job-status {
     font-weight: bold;
+    text-transform: capitalize;
 }
-.status-completed { color: green; }
-.status-failed { color: red; }
-.status-pending { color: orange; }
-.status-in_progress { color: blue; } /* Simplified, no flashing for now */
+.status-completed { color: #2e7d32; } /* Darker Green */
+.status-failed { color: #c62828; }    /* Darker Red */
+.status-pending { color: #ef6c00; }   /* Darker Orange */
+.status-in_progress { color: #1565c0; } /* Darker Blue */
+
 .no-jobs-message {
     text-align: center;
     color: #666;
@@ -243,6 +246,20 @@ footer a {
     0% { opacity: 1; }
     50% { opacity: 0.7; }
     100% { opacity: 1; }
+}
+@keyframes flash {
+    0% { opacity: 1; }
+    50% { opacity: 0.3; }
+    100% { opacity: 1; }
+}
+.flashing-dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    background-color: var(--ep-light-blue);
+    border-radius: 50%;
+    margin-right: 5px;
+    animation: flash 1s infinite;
 }
 .scanning #file-display-container {
     animation: pulse 1.5s infinite ease-in-out;
@@ -289,5 +306,15 @@ footer a {
   }
   #job-list .job-entry:nth-child(even) {
       background-color: rgba(0, 0, 0, 0.1);
+  }
+  
+  /* Brighter status colors for dark mode */
+  .status-completed { color: #81c784; } /* Light Green */
+  .status-failed { color: #e57373; }    /* Light Red */
+  .status-pending { color: #ffb74d; }   /* Light Orange */
+  .status-in_progress { color: #64b5f6; } /* Light Blue */
+  
+  .job-entry:hover {
+      background-color: rgba(255, 255, 255, 0.1);
   }
 }
