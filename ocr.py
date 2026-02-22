@@ -12,7 +12,7 @@ import shutil
 import pandas as pd
 import pdf2image
 import pytesseract
-from flask import Flask, jsonify, render_template, request
+from flask import Flask, jsonify, render_template, request, send_from_directory
 from langcodes import Language
 from PIL import Image
 from werkzeug.utils import secure_filename
@@ -261,6 +261,12 @@ def _process_ocr_job(job_id, files_payload):
         OCR_JOBS[job_id]["overall_start_time"] = job_overall_start_time.isoformat()
         OCR_JOBS[job_id]["overall_end_time"] = job_overall_end_time.isoformat()
         OCR_JOBS[job_id]["overall_duration"] = f"{job_overall_duration:.2f}ms"
+
+
+@app.route('/favicon.ico')
+def favicon():
+    return send_from_directory(os.path.join(app.root_path, 'static'),
+                               'favicon.ico', mimetype='image/vnd.microsoft.icon')
 
 
 @app.route("/", methods=["GET", "POST"])
