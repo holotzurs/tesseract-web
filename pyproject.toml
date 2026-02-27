@@ -20,6 +20,9 @@ dependencies = [
     "requests",
     "pandas",
     "mcp",
+    "uvicorn",
+    "starlette",
+    "asgiref",
 ]
 
 

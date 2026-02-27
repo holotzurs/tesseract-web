@@ -14,6 +14,6 @@ WORKDIR /app
 
 RUN pip install -r requirements.txt
 
-ENTRYPOINT ["gunicorn", "--workers=1"]
-
 EXPOSE 80
+
+CMD ["uvicorn", "ocr:starlette_app", "--host", "0.0.0.0", "--port", "80"]
