@@ -10,23 +10,29 @@ from werkzeug.utils import secure_filename
 from asgiref.wsgi import WsgiToAsgi
 from starlette.applications import Starlette
 from starlette.routing import Route, Mount
-from starlette.responses import JSONResponse
+from starlette.responses import Response
 
 # OCR Engine Imports
 from ocr_engine import (
     get_tesseract_version_string,
     _process_single_ocr_task,
     OCR_JOBS,
-    submit_async_ocr_job
+    JOB_STATUS,
+    submit_async_ocr_job,
+    _process_ocr_job,
+    pdf_to_img,
+    _get_ocr_data,
+    pdf_to_text
 )
 
 # MCP Imports
 from mcp.server.fastmcp import FastMCP
 from mcp.server.sse import SseServerTransport
+from mcp.server.models import InitializationOptions
 
-# --- Flask App (Web UI & REST API) ---
+# --- Flask App ---
 flask_app = Flask(__name__)
-flask_app.config["JSON_SORT_KEYS"] = False
+flask_app.json.sort_keys = False
 UPLOAD_FOLDER = "./static/uploads"
 flask_app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
 flask_app.config["MAX_CONTENT_LENGTH"] = 10 * 1024 * 1024
@@ -78,13 +84,35 @@ def ocr():
     except Exception as e:
         return jsonify(error=str(e)), 500
 
+@flask_app.route("/api/v2/ocr", methods=["POST"])
+def ocr_v2():
+    start_time_overall = datetime.datetime.now()
+    if not request.json or 'url' not in request.json:
+        return jsonify(error="URL is required", tesseract_version=get_tesseract_version_string()), 400
+    file_input = {"url": request.json['url'], "language": request.json.get('language', 'en')}
+    try:
+        single_result = _process_single_ocr_task(file_input, flask_app.config["UPLOAD_FOLDER"], flask_app.config["SUPPORTED_FORMATS"])
+        end_time_overall = datetime.datetime.now()
+        duration_overall = (end_time_overall - start_time_overall).total_seconds() * 1000
+        response_payload = {"start_time": start_time_overall.isoformat(), "end_time": end_time_overall.isoformat(), "duration": f"{duration_overall:.2f}ms", **single_result}
+        return jsonify(response_payload), 200 if not single_result["error"] else 400
+    except Exception as e:
+        return jsonify(error=str(e)), 500
+
+@flask_app.route("/api/async_ocr", methods=["POST"])
+def async_ocr():
+    if not request.json or 'files' not in request.json or not isinstance(request.json['files'], list):
+        return jsonify(error="Invalid request: 'files' list is required in JSON body"), 400
+    job_id = submit_async_ocr_job(request.json['files'], flask_app.config["UPLOAD_FOLDER"], flask_app.config["SUPPORTED_FORMATS"])
+    return jsonify({"job_id": job_id, "status": "pending", "message": f"OCR job submitted. Query /api/ocr_status/{job_id} for results.", "tesseract_version": get_tesseract_version_string()}), 202
+
 @flask_app.route("/api/ocr_status/<job_id>", methods=["GET"])
 def ocr_status(job_id):
     job_data = OCR_JOBS.get(job_id)
     if job_data: return jsonify(job_data), 200
     return jsonify({"status": "not_found", "message": f"Job {job_id} not found."}), 404
 
-# --- MCP Server (using FastMCP) ---
+# --- MCP Server ---
 mcp = FastMCP("ocr-service")
 
 @mcp.tool()
@@ -113,25 +141,25 @@ async def get_job_status(job_id: str) -> str:
 # SSE Transport
 sse_transport = SseServerTransport("/mcp/messages")
 
-async def handle_sse(request):
-    async with sse_transport.connect_sse(request.scope, request.receive, request._send) as (read_stream, write_stream):
-        # We access the internal low-level server of FastMCP for the manual run
-        await mcp._mcp_server.run(
-            read_stream,
-            write_stream,
-            mcp._mcp_server.create_initialization_options()
-        )
+class MCPSSEApp:
+    async def __call__(self, scope, receive, send):
+        async with sse_transport.connect_sse(scope, receive, send) as (read_stream, write_stream):
+            await mcp._mcp_server.run(
+                read_stream,
+                write_stream,
+                mcp._mcp_server.create_initialization_options()
+            )
 
-async def handle_messages(request):
-    return await sse_transport.handle_post_message(request.scope, request.receive)
+class MCPMessagesApp:
+    async def __call__(self, scope, receive, send):
+        await sse_transport.handle_post_message(scope, receive, send)
 
 # --- Combined ASGI Application ---
-# The order of routes matters: more specific routes should come first.
 starlette_app = Starlette(
     debug=True,
     routes=[
-        Route("/mcp/sse", endpoint=handle_sse),
-        Route("/mcp/messages", endpoint=handle_messages, methods=["POST"]),
+        Route("/mcp/sse", endpoint=MCPSSEApp()),
+        Route("/mcp/messages", endpoint=MCPMessagesApp(), methods=["POST"]),
         Mount("/", app=WsgiToAsgi(flask_app))
     ]
 )

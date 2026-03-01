@@ -8,12 +8,12 @@ classifiers = ["Private :: Do Not Upload"]
 version = "0"
 requires-python = ">=3.9"
 dependencies = [
-    "Flask[async]",
-    "gunicorn",
-    "Jinja2",
-    "pillow",
-    "pytesseract",
-    "werkzeug",
+    "Flask[async]>=3.0.0",
+    "gunicorn>=21.0.0",
+    "Jinja2>=3.1.0",
+    "pillow>=10.0.0",
+    "pytesseract>=0.3.13",
+    "werkzeug>=3.0.0",
     "pdf2image",
     "langcodes[data]==3.5.1",
     "language-data==1.4.0",

@@ -1,3 +1,5 @@
+console.log("Main.js loading...");
+
 const droparea = document.querySelector(".controls-area");
 const input = document.querySelector("#uploadimage");
 const ocrImg = document.querySelector("#ocr-img");
@@ -51,6 +53,7 @@ let pdfState = {
 
 // --- Core Display Functions ---
 function resetVisualDisplay(isResultFlow = false) {
+    console.log("resetVisualDisplay called, isResultFlow:", isResultFlow);
     ocrImg.classList.add('hidden');
     ocrPdf.classList.add('hidden');
     ocrCanvas.classList.add('hidden');
@@ -71,6 +74,7 @@ function displayImage(src) {
 async function displayPdf(src) {
     resetVisualDisplay(src ? true : false);
     const url = src || URL.createObjectURL(state.file);
+    console.log("displayPdf loading URL:", url);
     
     try {
         if (pdfState.currentUrl !== url) {
@@ -115,13 +119,10 @@ async function renderPdfPage(num) {
 
     // Draw bounding boxes for this page
     if (state.currentOcrResults && Array.isArray(state.currentOcrResults)) {
-        console.log(`Checking for OCR data for page ${num} in`, state.currentOcrResults);
         const pageOcr = state.currentOcrResults.find(res => res.page_num === num);
         if (pageOcr) {
-            console.log(`Found data for page ${num}, drawing boxes.`);
+            console.log(`Drawing boxes for page ${num}`);
             drawBoundingBoxes(pageOcr.ocr_data, pageOcr.image_width, pageOcr.image_height);
-        } else {
-            console.warn(`No OCR data found for page ${num}`);
         }
     }
 }
@@ -148,7 +149,10 @@ window.nextPage = nextPage;
 
 function drawBoundingBoxes(pageData, originalWidth, originalHeight) {
     const ctx = ocrCanvas.getContext('2d');
-    console.log(`Drawing ${pageData.length} boxes. Canvas: ${ocrCanvas.width}x${ocrCanvas.height}, Original: ${originalWidth}x${originalHeight}`);
+    if (!originalWidth || !originalHeight) {
+        console.warn("Missing original dimensions, skipping boxes.");
+        return;
+    }
     
     ctx.strokeStyle = 'red';
     ctx.lineWidth = 2;
@@ -156,7 +160,6 @@ function drawBoundingBoxes(pageData, originalWidth, originalHeight) {
 
     const scaleX = ocrCanvas.width / originalWidth;
     const scaleY = ocrCanvas.height / originalHeight;
-    console.log(`Scales: X=${scaleX}, Y=${scaleY}`);
     
     pageData.forEach(item => {
         if (item.level === 5 && item.text && item.text.trim() !== '') {
@@ -175,8 +178,7 @@ async function drawOCRData(fileResult) {
     if (!fileResult) return;
     
     if (fileResult.image_base64) {
-        console.log("Detected Image result");
-        // Single image result - ocr_data is the array of page results
+        // Single image result
         state.currentOcrResults = fileResult.ocr_data; 
         const pageInfo = fileResult.ocr_data[0];
         const img = new Image();
@@ -194,19 +196,16 @@ async function drawOCRData(fileResult) {
         };
         img.src = fileResult.image_base64;
     } else if (Array.isArray(fileResult)) {
-        console.log("Detected PDF result (array)");
-        // PDF result (array of page results) - we take the first file's page results
-        // fileResult is activeJobs[jobId].results, which is [ {filename:..., ocr_data: [page1, page2...]} ]
+        // PDF result (array of page results)
         state.currentOcrResults = fileResult[0].ocr_data;
         const firstFile = fileResult[0];
         const url = firstFile.source.startsWith("filepath://") ? firstFile.source.replace("filepath://", "/static/uploads/") : firstFile.source;
         await displayPdf(url);
-    } else {
-        console.warn("Unknown fileResult structure:", fileResult);
     }
 }
 
 const onDrop = (file) => {
+    console.log("File dropped/selected:", file.name);
     resetVisualDisplay();
     state.file = file;
     if (file.type.indexOf("image/") >= 0) {
@@ -296,9 +295,7 @@ async function pollJobStatus(jobId) {
             if (jobData.status === 'completed' || jobData.status === 'failed') {
                 updateTimingInfoDisplay(jobId);
                 if (jobData.results?.length > 0) {
-                    // Show full JSON of all results in the textarea
                     resultTextarea.value = JSON.stringify(jobData.results, null, 2);
-                    
                     const firstResult = jobData.results[0];
                     if (firstResult.image_base64) {
                         drawOCRData(firstResult);
@@ -332,7 +329,6 @@ function displayJob(jobId, jobData, jobIndex) {
             updateTimingInfoDisplay(jobId);
             if (jobData.results?.length > 0) {
                 resultTextarea.value = JSON.stringify(jobData.results, null, 2);
-                
                 const firstResult = jobData.results[0];
                 if (firstResult.image_base64) {
                     drawOCRData(firstResult);
@@ -364,15 +360,42 @@ function displayJob(jobId, jobData, jobIndex) {
     statusSpan.classList.add(`job-status`, `status-${jobData.status}`);
 
     if (jobData.status === 'completed' || jobData.status === 'failed') {
-        durationSpan.textContent = jobData.overall_duration || "N/A";
+        let ms = 0;
+        if (typeof jobData.overall_duration === 'string') {
+            ms = parseFloat(jobData.overall_duration.replace('ms', ''));
+        } else {
+            ms = jobData.overall_duration;
+        }
+        durationSpan.textContent = formatDuration(ms);
         if (dashboardIntervals[jobId]) { clearInterval(dashboardIntervals[jobId]); delete dashboardIntervals[jobId]; }
     } else if (!dashboardIntervals[jobId] && jobData.overall_start_time) {
         dashboardIntervals[jobId] = setInterval(() => {
             const startTime = new Date(jobData.overall_start_time).getTime();
             if (isNaN(startTime) || startTime <= 0) return;
-            durationSpan.textContent = Math.max(0, (Date.now() - startTime) / 1000).toFixed(2) + 's';
+            const elapsedMs = Date.now() - startTime;
+            durationSpan.textContent = formatDuration(elapsedMs);
         }, 100);
     }
+}
+
+// --- Time Formatting Helpers ---
+function formatTime(isoString) {
+    if (!isoString) return 'N/A';
+    const date = new Date(isoString);
+    if (isNaN(date.getTime())) return 'N/A';
+    return date.toLocaleTimeString('en-GB', { hour12: false }) + '.' + 
+           date.getMilliseconds().toString().padStart(3, '0');
+}
+
+function formatDuration(ms) {
+    if (isNaN(ms) || ms < 0) return '00:00.000';
+    const totalSeconds = Math.floor(ms / 1000);
+    const milliseconds = Math.floor(ms % 1000);
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    return minutes.toString().padStart(2, '0') + ':' + 
+           seconds.toString().padStart(2, '0') + '.' + 
+           milliseconds.toString().padStart(3, '0');
 }
 
 // --- Job Timing Logic ---
@@ -385,28 +408,40 @@ function updateTimingInfoDisplay(jobId) {
     currentTimingJobId = jobId;
     const timingInfoEl = document.querySelector("#timing-info");
     timingInfoEl.classList.remove("hidden");
-    document.querySelector("#start-time").textContent = jobData.overall_start_time ? new Date(jobData.overall_start_time).toLocaleTimeString() : 'N/A';
     
+    document.querySelector("#start-time").textContent = formatTime(jobData.overall_start_time);
+    
+    const durationEl = document.querySelector("#duration");
+    const endTimeEl = document.querySelector("#end-time");
+
     if (jobData.status === 'completed' || jobData.status === 'failed') {
-        document.querySelector("#end-time").textContent = jobData.overall_end_time ? new Date(jobData.overall_end_time).toLocaleTimeString() : 'N/A';
-        document.querySelector("#duration").textContent = jobData.overall_duration || 'N/A';
+        endTimeEl.textContent = formatTime(jobData.overall_end_time);
+        
+        // Parse "123.45ms" string from server if needed
+        let ms = 0;
+        if (typeof jobData.overall_duration === 'string') {
+            ms = parseFloat(jobData.overall_duration.replace('ms', ''));
+        } else {
+            ms = jobData.overall_duration;
+        }
+        durationEl.textContent = formatDuration(ms);
+
         if (timingIntervalId) { clearInterval(timingIntervalId); timingIntervalId = null; }
     } else {
-        document.querySelector("#end-time").textContent = 'Running...';
+        endTimeEl.textContent = 'Running...';
         if (timingIntervalId) clearInterval(timingIntervalId);
         timingIntervalId = setInterval(() => {
             const job = activeJobs[currentTimingJobId];
             if (!job) return;
             if (job.status === 'completed' || job.status === 'failed') {
-                document.querySelector("#duration").textContent = job.overall_duration || 'N/A';
-                document.querySelector("#end-time").textContent = job.overall_end_time ? new Date(job.overall_end_time).toLocaleTimeString() : 'N/A';
-                clearInterval(timingIntervalId); timingIntervalId = null;
+                updateTimingInfoDisplay(currentTimingJobId); // Recursive call to final state
                 return;
             }
             const startTime = new Date(job.overall_start_time).getTime();
             if (isNaN(startTime) || startTime <= 0) return;
-            document.querySelector("#duration").textContent = Math.max(0, (Date.now() - startTime) / 1000).toFixed(2) + 's';
-        }, 100);
+            const elapsedMs = Date.now() - startTime;
+            durationEl.textContent = formatDuration(elapsedMs);
+        }, 50); // Faster update for smoother feel
     }
 }
 
@@ -435,21 +470,18 @@ function doOCR(){
     })
     .then(result => {
         activeJobs[jobId] = { ...activeJobs[jobId], status: result.error ? 'failed' : 'completed', results: [{ ...result, filename: state.file.name }], overall_start_time: result.start_time || activeJobs[jobId].overall_start_time, overall_end_time: result.end_time || new Date().toISOString(), overall_duration: result.duration, error: result.error };
-                displayJob(jobId, activeJobs[jobId]);
-                updateTimingInfoDisplay(jobId);
+        displayJob(jobId, activeJobs[jobId]);
+        updateTimingInfoDisplay(jobId);
         
-                if (result.image_base64) {
-                    resultEl.value = JSON.stringify(result, null, 2);
-                    drawOCRData(result);
-                } else {
-                    // For PDF, result is the first element of an array in activeJobs, 
-                    // but the fetch response itself might be the full object or array.
-                    // Let's use the stored results array for consistency.
-                    const resultsArray = activeJobs[jobId].results;
-                    resultEl.value = JSON.stringify(resultsArray, null, 2);
-                    drawOCRData(resultsArray);
-                }
-            })
+        if (result.image_base64) {
+            resultEl.value = JSON.stringify(result, null, 2);
+            drawOCRData(result);
+        } else {
+            const resultsArray = activeJobs[jobId].results;
+            resultEl.value = JSON.stringify(resultsArray, null, 2);
+            drawOCRData(resultsArray);
+        }
+    })
     .catch(error => {
         document.querySelector('main').classList.remove('scanning');
         activeJobs[jobId] = { ...activeJobs[jobId], status: 'failed', overall_end_time: new Date().toISOString(), overall_duration: 'N/A', error: error.message || error };
@@ -459,13 +491,17 @@ function doOCR(){
 }
 
 async function submitAsyncOCR(){
+    console.log("submitAsyncOCR triggered");
     const uploadImageInput = document.querySelector("#uploadimage");
     const selectedFiles = uploadImageInput.files;
     if (selectedFiles.length === 0) { alert("Please select at least one file for asynchronous processing."); return; }
+    
     document.querySelector('main').classList.add('scanning');
     const filesPayload = [];
+    
     for (let i = 0; i < selectedFiles.length; i++) {
         const file = selectedFiles[i];
+        console.log(`Processing file ${i+1}: ${file.name}`);
         const base64String = await new Promise((resolve, reject) => {
             const reader = new FileReader();
             reader.onload = () => resolve(reader.result.split(',')[1]);
@@ -475,17 +511,33 @@ async function submitAsyncOCR(){
         filesPayload.push({ filename: file.name, base64: base64String, language: document.getElementById('source_lang').value });
     }
 
+    console.log("Submitting payload to /api/async_ocr...");
     try {
-        const response = await fetch('/api/async_ocr', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ files: filesPayload }) });
+        const response = await fetch('/api/async_ocr', { 
+            method: 'POST', 
+            headers: { 'Content-Type': 'application/json' }, 
+            body: JSON.stringify({ files: filesPayload }) 
+        });
         const jsonResponse = await response.json();
         document.querySelector('main').classList.remove('scanning');
+        
         if (response.ok) {
             const jobId = jsonResponse.job_id;
+            console.log("Async job submitted successfully, ID:", jobId);
             activeJobs[jobId] = { job_id: jobId, status: jsonResponse.status, results: [], overall_start_time: new Date().toISOString(), overall_end_time: null, overall_duration: null, error: null, files: filesPayload };
             displayJob(jobId, activeJobs[jobId]);
             updateTimingInfoDisplay(jobId);
             startPolling();
             document.querySelector("#resulttext").value = jsonResponse.message;
+        } else {
+            console.error("Server error during async submission:", jsonResponse);
+            alert("Error: " + (jsonResponse.error || "Unknown server error"));
         }
-    } catch (error) { document.querySelector('main').classList.remove('scanning'); console.error("Async submit error:", error); }
+    } catch (error) { 
+        document.querySelector('main').classList.remove('scanning'); 
+        console.error("Network error during async submit:", error); 
+        alert("Network error. Please check if the server is running.");
+    }
 }
+
+console.log("Main.js loaded successfully.");

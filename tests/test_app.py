@@ -7,7 +7,14 @@ import time # NEW: For potential sleep in async tests
 import datetime # NEW: For simulating times in async job results
 
 # Import the Flask app instance from your main application file
-from ocr import app, UPLOAD_FOLDER, OCR_JOBS, JOB_STATUS, _process_single_ocr_task, _process_ocr_job # NEW IMPORTS
+from ocr import flask_app as app
+from ocr_engine import (
+    OCR_JOBS,
+    JOB_STATUS,
+    _process_single_ocr_task,
+    _process_ocr_job
+)
+from ocr import UPLOAD_FOLDER
 
 # Define a consistent mocked Tesseract version
 MOCKED_TESSERACT_VERSION = "5.5.0-mock"
@@ -255,7 +262,7 @@ def test_api_v2_ocr_unsupported_format(mock_process_single_ocr_task, mock_get_te
 # NEW: Tests for async multi-file OCR endpoint
 
 @patch('ocr.get_tesseract_version_string', return_value=MOCKED_TESSERACT_VERSION)
-@patch('ocr.threading.Thread')
+@patch('ocr_engine.threading.Thread')
 @patch('ocr.OCR_JOBS') # Mock the global OCR_JOBS to control its state
 def test_async_ocr_submit_success(mock_ocr_jobs, mock_thread, mock_get_tesseract_version_string, client):
     # Setup mock for _process_ocr_job to be passed to thread
@@ -425,7 +432,7 @@ def test_api_v2_ocr_unsupported_format(mock_process_single_ocr_task, mock_get_te
 # NEW: Tests for async multi-file OCR endpoint
 
 @patch('ocr.get_tesseract_version_string', return_value=MOCKED_TESSERACT_VERSION)
-@patch('ocr.threading.Thread')
+@patch('ocr_engine.threading.Thread')
 @patch('ocr.OCR_JOBS') # Mock the global OCR_JOBS to control its state
 def test_async_ocr_submit_success(mock_ocr_jobs, mock_thread, mock_get_tesseract_version_string, client):
     # Setup mock for _process_ocr_job to be passed to thread
