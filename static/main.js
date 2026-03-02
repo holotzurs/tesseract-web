@@ -52,27 +52,27 @@ let pdfState = {
 };
 
 // --- Core Display Functions ---
-function resetVisualDisplay(isResultFlow = false) {
-    console.log("resetVisualDisplay called, isResultFlow:", isResultFlow);
+function resetVisualDisplay(shouldClearText = true) {
+    console.log("resetVisualDisplay called, shouldClearText:", shouldClearText);
     ocrImg.classList.add('hidden');
     ocrPdf.classList.add('hidden');
     ocrCanvas.classList.add('hidden');
     pdfControls.classList.add('hidden');
-    if (!isResultFlow) {
+    if (shouldClearText) {
         resultTextarea.value = "";
         state.currentOcrResults = null;
     }
 }
 
 function displayImage(src) {
-    resetVisualDisplay(src ? true : false); 
+    resetVisualDisplay(src ? false : true); // BUG FIX: false means DON'T clear text
     ocrImg.src = src || URL.createObjectURL(state.file);
     ocrImg.classList.remove('hidden');
     ocrCanvas.classList.add('hidden');
 }
 
 async function displayPdf(src) {
-    resetVisualDisplay(src ? true : false);
+    resetVisualDisplay(src ? false : true); // BUG FIX: false means DON'T clear text
     const url = src || URL.createObjectURL(state.file);
     console.log("displayPdf loading URL:", url);
     
@@ -177,10 +177,28 @@ async function drawOCRData(fileResult) {
     console.log("drawOCRData called with:", fileResult);
     if (!fileResult) return;
     
+    // Normalize data: fileResult might be a single result object (sync image)
+    // or an array of page results (sync PDF or async job)
+    let ocrPages = [];
+    let isSingleImage = false;
+    let imageSrc = null;
+
     if (fileResult.image_base64) {
-        // Single image result
-        state.currentOcrResults = fileResult.ocr_data; 
-        const pageInfo = fileResult.ocr_data[0];
+        // It's a single image result object
+        isSingleImage = true;
+        imageSrc = fileResult.image_base64;
+        ocrPages = fileResult.ocr_data || [];
+    } else if (Array.isArray(fileResult)) {
+        // It's an array of results (from sync PDF or async status)
+        ocrPages = fileResult[0].ocr_data || [];
+    }
+
+    const hasData = ocrPages.length > 0;
+
+    if (isSingleImage && hasData) {
+        console.log("Rendering image with bounding boxes");
+        state.currentOcrResults = ocrPages; 
+        const pageInfo = ocrPages[0];
         const img = new Image();
         img.onload = () => {
             ocrCanvas.width = img.width;
@@ -194,19 +212,30 @@ async function drawOCRData(fileResult) {
             ocrPdf.classList.add('hidden');
             pdfControls.classList.add('hidden');
         };
-        img.src = fileResult.image_base64;
-    } else if (Array.isArray(fileResult)) {
-        // PDF result (array of page results)
-        state.currentOcrResults = fileResult[0].ocr_data;
+        img.src = imageSrc;
+    } else if (!isSingleImage && hasData) {
+        console.log("Rendering PDF with bounding boxes");
+        state.currentOcrResults = ocrPages;
         const firstFile = fileResult[0];
         const url = firstFile.source.startsWith("filepath://") ? firstFile.source.replace("filepath://", "/static/uploads/") : firstFile.source;
         await displayPdf(url);
+    } else {
+        // No bounding boxes requested or available
+        console.log("No bounding boxes to draw, showing raw file.");
+        if (state.file) {
+            const currentSrc = URL.createObjectURL(state.file);
+            if (state.file.type.indexOf("image/") >= 0) {
+                displayImage(currentSrc);
+            } else if (state.file.type.indexOf("application/pdf") >= 0) {
+                displayPdf(currentSrc);
+            }
+        }
     }
 }
 
 const onDrop = (file) => {
     console.log("File dropped/selected:", file.name);
-    resetVisualDisplay();
+    resetVisualDisplay(true); // Full reset for new file
     state.file = file;
     if (file.type.indexOf("image/") >= 0) {
         displayImage();
@@ -451,11 +480,13 @@ function doOCR(){
     resultEl.value = "Scanning..."; 
     document.querySelector('main').classList.add('scanning');
     const language = document.getElementById('source_lang').value;
+    const includeOcrData = document.getElementById('include-ocr-bounding-boxes').checked;
     const jobId = 'sync-' + Date.now();
     const data = new FormData();
     data.append('file', state.file);
     data.append('language', language);
     data.append('job_id', jobId);
+    data.append('include_ocr_bounding_boxes', includeOcrData);
     
     activeJobs[jobId] = { job_id: jobId, status: 'in_progress', results: [], overall_start_time: new Date().toISOString(), overall_end_time: null, overall_duration: null, error: null, files: [{ filename: state.file.name, language: language }] };
     displayJob(jobId, activeJobs[jobId]);
@@ -473,12 +504,14 @@ function doOCR(){
         displayJob(jobId, activeJobs[jobId]);
         updateTimingInfoDisplay(jobId);
         
+        // Always show the JSON result
+        resultEl.value = JSON.stringify(result, null, 2);
+        
         if (result.image_base64) {
-            resultEl.value = JSON.stringify(result, null, 2);
             drawOCRData(result);
         } else {
             const resultsArray = activeJobs[jobId].results;
-            resultEl.value = JSON.stringify(resultsArray, null, 2);
+            // No need to set resultEl.value again here, it's done above
             drawOCRData(resultsArray);
         }
     })
@@ -498,6 +531,7 @@ async function submitAsyncOCR(){
     
     document.querySelector('main').classList.add('scanning');
     const filesPayload = [];
+    const includeOcrData = document.getElementById('include-ocr-bounding-boxes').checked;
     
     for (let i = 0; i < selectedFiles.length; i++) {
         const file = selectedFiles[i];
@@ -508,7 +542,12 @@ async function submitAsyncOCR(){
             reader.onerror = error => reject(error);
             reader.readAsDataURL(file);
         });
-        filesPayload.push({ filename: file.name, base64: base64String, language: document.getElementById('source_lang').value });
+        filesPayload.push({ 
+            filename: file.name, 
+            base64: base64String, 
+            language: document.getElementById('source_lang').value,
+            include_ocr_bounding_boxes: includeOcrData
+        });
     }
 
     console.log("Submitting payload to /api/async_ocr...");

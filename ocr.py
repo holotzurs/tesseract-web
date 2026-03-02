@@ -65,21 +65,39 @@ def listSupportedLanguages():
 
 @flask_app.route("/api/ocr", methods=["POST"])
 def ocr():
-    start_time_overall = datetime.datetime.now()
+    start_time_overall = datetime.datetime.now(datetime.timezone.utc)
     file_input_obj = request.files["file"]
     language = request.form.get("language", default="en")
     job_id = request.form.get("job_id")
+    include_ocr_bounding_boxes = request.form.get("include_ocr_bounding_boxes", default="true").lower() == "true"
+    
     try:
         filename = secure_filename(file_input_obj.filename)
         file_extension = pathlib.Path(filename).suffix.lower().lstrip('.')
         with tempfile.NamedTemporaryFile(delete=False, suffix=f".{file_extension}", dir=flask_app.config["UPLOAD_FOLDER"]) as temp_file:
             file_input_obj.save(temp_file.name)
             temp_filepath = temp_file.name
+        
         file_input = {"filepath": temp_filepath, "filename": filename, "language": language}
-        single_result = _process_single_ocr_task(file_input, flask_app.config["UPLOAD_FOLDER"], flask_app.config["SUPPORTED_FORMATS"])
-        end_time_overall = datetime.datetime.now()
+        single_result = _process_single_ocr_task(file_input, flask_app.config["UPLOAD_FOLDER"], flask_app.config["SUPPORTED_FORMATS"], include_ocr_bounding_boxes=include_ocr_bounding_boxes)
+        
+        end_time_overall = datetime.datetime.now(datetime.timezone.utc)
         duration_overall = (end_time_overall - start_time_overall).total_seconds() * 1000
+        
         response_payload = {"job_id": job_id, "start_time": start_time_overall.isoformat(), "end_time": end_time_overall.isoformat(), "duration": f"{duration_overall:.2f}ms", **single_result}
+        
+        # Sync job tracking: store in OCR_JOBS for dashboard consistency
+        if job_id:
+            OCR_JOBS[job_id] = {
+                "job_id": job_id,
+                "status": "completed" if not single_result["error"] else "failed",
+                "results": [response_payload],
+                "overall_start_time": response_payload["start_time"],
+                "overall_end_time": response_payload["end_time"],
+                "overall_duration": response_payload["duration"],
+                "error": single_result["error"]
+            }
+
         return jsonify(response_payload), 200 if not single_result["error"] else 400
     except Exception as e:
         return jsonify(error=str(e)), 500
@@ -89,9 +107,12 @@ def ocr_v2():
     start_time_overall = datetime.datetime.now()
     if not request.json or 'url' not in request.json:
         return jsonify(error="URL is required", tesseract_version=get_tesseract_version_string()), 400
+    
     file_input = {"url": request.json['url'], "language": request.json.get('language', 'en')}
+    include_ocr_bounding_boxes = request.json.get("include_ocr_bounding_boxes", True)
+    
     try:
-        single_result = _process_single_ocr_task(file_input, flask_app.config["UPLOAD_FOLDER"], flask_app.config["SUPPORTED_FORMATS"])
+        single_result = _process_single_ocr_task(file_input, flask_app.config["UPLOAD_FOLDER"], flask_app.config["SUPPORTED_FORMATS"], include_ocr_bounding_boxes=include_ocr_bounding_boxes)
         end_time_overall = datetime.datetime.now()
         duration_overall = (end_time_overall - start_time_overall).total_seconds() * 1000
         response_payload = {"start_time": start_time_overall.isoformat(), "end_time": end_time_overall.isoformat(), "duration": f"{duration_overall:.2f}ms", **single_result}

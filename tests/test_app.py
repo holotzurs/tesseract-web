@@ -23,8 +23,7 @@ MOCKED_TESSERACT_VERSION = "5.5.0-mock"
 def client():
     # Set the app to testing mode
     app.config['TESTING'] = True
-    app.config['UPLOAD_FOLDER'] = os.path.join(UPLOAD_FOLDER, 'test_uploads')
-    # Ensure the test upload folder exists
+    # Ensure the upload folder exists
     os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
     with app.test_client() as client:
         yield client

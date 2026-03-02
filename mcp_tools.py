@@ -22,6 +22,7 @@ def register_ocr_tools(server):
                     "properties": {
                         "path": {"type": "string", "description": "Local path to the file"},
                         "language": {"type": "string", "description": "Language code (e.g., 'en')", "default": "en"},
+                        "include_ocr_bounding_boxes": {"type": "boolean", "description": "Whether to include bounding box data", "default": True},
                     },
                     "required": ["path"],
                 },
@@ -34,6 +35,7 @@ def register_ocr_tools(server):
                     "properties": {
                         "url": {"type": "string", "description": "URL of the file"},
                         "language": {"type": "string", "description": "Language code (e.g., 'en')", "default": "en"},
+                        "include_ocr_bounding_boxes": {"type": "boolean", "description": "Whether to include bounding box data", "default": True},
                     },
                     "required": ["url"],
                 },
@@ -52,7 +54,8 @@ def register_ocr_tools(server):
                                     "url": {"type": "string"},
                                     "base64": {"type": "string"},
                                     "filename": {"type": "string"},
-                                    "language": {"type": "string"}
+                                    "language": {"type": "string"},
+                                    "include_ocr_bounding_boxes": {"type": "boolean", "default": True}
                                 }
                             }
                         },
@@ -84,12 +87,14 @@ def register_ocr_tools(server):
                 return [types.TextContent(type="text", text=json.dumps({"error": f"File not found at {path}"}))]
             
             file_input = {"filepath": path, "filename": os.path.basename(path), "language": arguments.get("language", "en")}
-            result = _process_single_ocr_task(file_input, UPLOAD_FOLDER, SUPPORTED_FORMATS)
+            include_ocr_bounding_boxes = arguments.get("include_ocr_bounding_boxes", True)
+            result = _process_single_ocr_task(file_input, UPLOAD_FOLDER, SUPPORTED_FORMATS, include_ocr_bounding_boxes=include_ocr_bounding_boxes)
             return [types.TextContent(type="text", text=json.dumps(result, indent=2))]
 
         elif name == "ocr_url":
             file_input = {"url": arguments.get("url"), "language": arguments.get("language", "en")}
-            result = _process_single_ocr_task(file_input, UPLOAD_FOLDER, SUPPORTED_FORMATS)
+            include_ocr_bounding_boxes = arguments.get("include_ocr_bounding_boxes", True)
+            result = _process_single_ocr_task(file_input, UPLOAD_FOLDER, SUPPORTED_FORMATS, include_ocr_bounding_boxes=include_ocr_bounding_boxes)
             return [types.TextContent(type="text", text=json.dumps(result, indent=2))]
 
         elif name == "submit_async_ocr":

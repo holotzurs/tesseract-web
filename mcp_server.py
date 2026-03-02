@@ -19,24 +19,27 @@ UPLOAD_FOLDER = "./static/uploads"
 SUPPORTED_FORMATS = ["png", "jpeg", "jpg", "bmp", "pnm", "gif", "tiff", "webp", "pdf"]
 
 @mcp.tool()
-async def ocr_file(path: str, language: str = "en") -> str:
+async def ocr_file(path: str, language: str = "en", include_ocr_bounding_boxes: bool = True) -> str:
     """Perform OCR on a local image or PDF file."""
     if not os.path.exists(path):
         return json.dumps({"error": f"File not found at {path}"})
     file_input = {"filepath": path, "filename": os.path.basename(path), "language": language}
-    result = _process_single_ocr_task(file_input, UPLOAD_FOLDER, SUPPORTED_FORMATS)
+    result = _process_single_ocr_task(file_input, UPLOAD_FOLDER, SUPPORTED_FORMATS, include_ocr_bounding_boxes=include_ocr_bounding_boxes)
     return json.dumps(result, indent=2)
 
 @mcp.tool()
-async def ocr_url(url: str, language: str = "en") -> str:
+async def ocr_url(url: str, language: str = "en", include_ocr_bounding_boxes: bool = True) -> str:
     """Perform OCR on an image or PDF from a URL."""
     file_input = {"url": url, "language": language}
-    result = _process_single_ocr_task(file_input, UPLOAD_FOLDER, SUPPORTED_FORMATS)
+    result = _process_single_ocr_task(file_input, UPLOAD_FOLDER, SUPPORTED_FORMATS, include_ocr_bounding_boxes=include_ocr_bounding_boxes)
     return json.dumps(result, indent=2)
 
 @mcp.tool()
 async def submit_async_ocr(files: list[dict]) -> str:
-    """Submit multiple files for asynchronous OCR processing."""
+    """
+    Submit multiple files for asynchronous OCR processing.
+    Each file dict can optionally include 'include_ocr_bounding_boxes': bool.
+    """
     job_id = submit_async_ocr_job(files, UPLOAD_FOLDER, SUPPORTED_FORMATS)
     return json.dumps({"job_id": job_id, "status": "pending"}, indent=2)
 

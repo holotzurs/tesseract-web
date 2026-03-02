@@ -82,6 +82,20 @@ section {
     border: 1px solid var(--border-color);
     border-radius: 5px;
 }
+.checkbox-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 10px 0;
+}
+.checkbox-group input {
+    width: auto;
+    cursor: pointer;
+}
+.checkbox-group label {
+    cursor: pointer;
+    font-size: 0.9em;
+}
 .button-group {
     display: flex;
     gap: 10px;
