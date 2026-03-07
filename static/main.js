@@ -389,13 +389,22 @@ function displayJob(jobId, jobData, jobIndex) {
     statusSpan.classList.add(`job-status`, `status-${jobData.status}`);
 
     if (jobData.status === 'completed' || jobData.status === 'failed') {
-        let ms = 0;
+        let serverMs = 0;
         if (typeof jobData.overall_duration === 'string') {
-            ms = parseFloat(jobData.overall_duration.replace('ms', ''));
+            serverMs = parseFloat(jobData.overall_duration.replace('ms', ''));
         } else {
-            ms = jobData.overall_duration;
+            serverMs = jobData.overall_duration;
         }
-        durationSpan.textContent = formatDuration(ms);
+
+        let totalDurationStr = "N/A";
+        if (jobData.overall_start_time && jobData.overall_end_time) {
+            const start = new Date(jobData.overall_start_time).getTime();
+            const end = new Date(jobData.overall_end_time).getTime();
+            totalDurationStr = formatDuration(end - start);
+        }
+
+        // Display as "Total (Server)"
+        durationSpan.textContent = `${totalDurationStr} (${formatDuration(serverMs)})`;
         if (dashboardIntervals[jobId]) { clearInterval(dashboardIntervals[jobId]); delete dashboardIntervals[jobId]; }
     } else if (!dashboardIntervals[jobId] && jobData.overall_start_time) {
         dashboardIntervals[jobId] = setInterval(() => {
@@ -441,23 +450,32 @@ function updateTimingInfoDisplay(jobId) {
     document.querySelector("#start-time").textContent = formatTime(jobData.overall_start_time);
     
     const durationEl = document.querySelector("#duration");
+    const serverTimeEl = document.querySelector("#server-time");
     const endTimeEl = document.querySelector("#end-time");
 
     if (jobData.status === 'completed' || jobData.status === 'failed') {
         endTimeEl.textContent = formatTime(jobData.overall_end_time);
         
-        // Parse "123.45ms" string from server if needed
+        // Final Total Duration (Browser clock)
+        if (jobData.overall_start_time && jobData.overall_end_time) {
+            const start = new Date(jobData.overall_start_time).getTime();
+            const end = new Date(jobData.overall_end_time).getTime();
+            durationEl.textContent = formatDuration(end - start);
+        }
+
+        // Server Processing Time
         let ms = 0;
         if (typeof jobData.overall_duration === 'string') {
             ms = parseFloat(jobData.overall_duration.replace('ms', ''));
         } else {
             ms = jobData.overall_duration;
         }
-        durationEl.textContent = formatDuration(ms);
+        serverTimeEl.textContent = formatDuration(ms);
 
         if (timingIntervalId) { clearInterval(timingIntervalId); timingIntervalId = null; }
     } else {
         endTimeEl.textContent = 'Running...';
+        serverTimeEl.textContent = 'N/A';
         if (timingIntervalId) clearInterval(timingIntervalId);
         timingIntervalId = setInterval(() => {
             const job = activeJobs[currentTimingJobId];
