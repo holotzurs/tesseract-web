@@ -16,8 +16,8 @@ def client():
     (False, True)
 ])
 def test_engine_optional_ocr_data(include_data, expected_empty):
-    test_image = "static/uploads/test_uploads/82092117.png"
-    upload_folder = "static/uploads"
+    test_image = "static/samples/82092117.png"
+    upload_folder = "static/temp"
     formats = ["png", "pdf"]
     
     file_input = {

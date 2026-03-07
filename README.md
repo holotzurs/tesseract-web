@@ -73,7 +73,7 @@ mcp-add({
 ### 2. Testing the Integration
 
 **Example Prompt:**
-> "Perform OCR on `static/uploads/test_uploads/82092117.png` using the `ocr-service` and check if it contains any names of people."
+> "Perform OCR on `static/samples/82092117.png` using the `ocr-service` and check if it contains any names of people."
 
 ## Automated Testing
 

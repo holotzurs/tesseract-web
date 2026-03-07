@@ -33,7 +33,7 @@ from mcp.server.models import InitializationOptions
 # --- Flask App ---
 flask_app = Flask(__name__)
 flask_app.json.sort_keys = False
-UPLOAD_FOLDER = "./static/uploads"
+UPLOAD_FOLDER = "./static/temp"
 flask_app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
 flask_app.config["MAX_CONTENT_LENGTH"] = 10 * 1024 * 1024
 flask_app.config["SUPPORTED_FORMATS"] = ["png", "jpeg", "jpg", "bmp", "pnm", "gif", "tiff", "webp", "pdf"]
@@ -101,6 +101,12 @@ def ocr():
         return jsonify(response_payload), 200 if not single_result["error"] else 400
     except Exception as e:
         return jsonify(error=str(e)), 500
+    finally:
+        if temp_filepath and os.path.exists(temp_filepath):
+            try:
+                os.remove(temp_filepath)
+            except:
+                pass
 
 @flask_app.route("/api/v2/ocr", methods=["POST"])
 def ocr_v2():

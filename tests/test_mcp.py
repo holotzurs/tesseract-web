@@ -41,7 +41,7 @@ async def test_ocr_file_tool():
         async with ClientSession(read, write) as session:
             await session.initialize()
             
-            test_image = "static/uploads/test_uploads/82092117.png"
+            test_image = "static/samples/82092117.png"
             
             result = await session.call_tool(
                 "ocr_file",

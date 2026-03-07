@@ -30,7 +30,7 @@ def test_split_timing_visibility(browser_page):
     page = browser_page
     
     # Upload image
-    test_image = os.path.abspath("static/uploads/test_uploads/82092117.png")
+    test_image = os.path.abspath("static/samples/82092117.png")
     page.set_input_files("#uploadimage", test_image)
     
     # Submit

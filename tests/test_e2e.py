@@ -37,7 +37,7 @@ def test_sync_ocr_pdf_with_boxes(browser_page):
     page.reload() # Fresh state
     
     page.check("#include-ocr-bounding-boxes")
-    test_pdf = os.path.abspath("static/uploads/test_uploads/sample.pdf")
+    test_pdf = os.path.abspath("static/samples/sample.pdf")
     page.set_input_files("#uploadimage", test_pdf)
     
     page.click("button:has-text('Submit Single File')")
@@ -67,7 +67,7 @@ def test_ui_logic_persistence(browser_page):
     page = browser_page
     page.reload()
     
-    test_image = os.path.abspath("static/uploads/test_uploads/82092117.png")
+    test_image = os.path.abspath("static/samples/82092117.png")
     
     # 1. Run OCR with boxes
     page.check("#include-ocr-bounding-boxes")

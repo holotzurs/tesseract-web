@@ -5,7 +5,7 @@ from ocr_engine import _process_single_ocr_task, OCR_JOBS, submit_async_ocr_job
 
 # We need access to configuration, but we want to avoid circular imports.
 # In a real app, these would come from a shared config module.
-UPLOAD_FOLDER = "./static/uploads"
+UPLOAD_FOLDER = "./static/temp"
 SUPPORTED_FORMATS = ["png", "jpeg", "jpg", "bmp", "pnm", "gif", "tiff", "webp", "pdf"]
 
 def register_ocr_tools(server):

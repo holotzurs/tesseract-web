@@ -35,7 +35,7 @@ def test_ui_ocr_no_boxes(browser_context):
     page.uncheck("#include-ocr-bounding-boxes")
     
     # Upload a file
-    test_image = os.path.abspath("static/uploads/test_uploads/82092117.png")
+    test_image = os.path.abspath("static/samples/82092117.png")
     page.set_input_files("#uploadimage", test_image)
     
     # Submit

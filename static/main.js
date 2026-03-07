@@ -217,7 +217,11 @@ async function drawOCRData(fileResult) {
         console.log("Rendering PDF with bounding boxes");
         state.currentOcrResults = ocrPages;
         const firstFile = fileResult[0];
-        const url = firstFile.source.startsWith("filepath://") ? firstFile.source.replace("filepath://", "/static/uploads/") : firstFile.source;
+        let url = firstFile.source;
+        if (url.startsWith("filepath://")) {
+            // Check both possible local static paths
+            url = url.replace("filepath://", "/static/temp/");
+        }
         await displayPdf(url);
     } else {
         // No bounding boxes requested or available

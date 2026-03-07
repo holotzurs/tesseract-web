@@ -150,7 +150,8 @@ def _process_single_ocr_task(file_input: dict, upload_folder: str, supported_for
             unique_filename = f"ocr_{uuid.uuid4().hex}_{result['filename']}"
             permanent_filepath = os.path.join(upload_folder, unique_filename)
             shutil.copy(temp_filepath, permanent_filepath)
-            result["source"] = f"/static/uploads/{unique_filename}"
+            folder_name = os.path.basename(upload_folder)
+            result["source"] = f"/static/{folder_name}/{unique_filename}"
         else:
             image_obj = Image.open(temp_filepath)
             image_ocr_results = _get_ocr_data(image_obj, language, include_ocr_bounding_boxes=include_ocr_bounding_boxes)
@@ -171,6 +172,13 @@ def _process_single_ocr_task(file_input: dict, upload_folder: str, supported_for
 
     except Exception as e:
         result["error"] = str(e)
+    finally:
+        # CLEANUP: Delete the temporary file created for processing
+        if temp_filepath and os.path.exists(temp_filepath) and "filepath" not in file_input:
+            try:
+                os.remove(temp_filepath)
+            except Exception as e:
+                print(f"Failed to delete temp file {temp_filepath}: {e}")
     
     result["tesseract_version"] = get_tesseract_version_string()
     return result
